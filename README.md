@@ -1,14 +1,12 @@
-# Project
+# JACDAC PADAUK
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+This repository contains an implementation of JACDAC for the PADAUK family of microcontrollers, in particular the PADAUK PMS150C.
 
-As the maintainer of this project, please make a few updates:
+Contained in the `button` and `neopixel` folders respectively is code that causes the PMS150C to advertise a button or an RGBLED service. From another JACDAC device, applications can detect different button presses and change the colour of the Neopixel remotely.
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+## Programming
+
+To build programs for the PMS150C you'll need to obtain the [PADAUK IDE](http://www.padauk.com.tw/en/product/show.aspx?num=17). To flash the microcontroller you'll need to alao download the program writer and obtain a physical hardware programmer.
 
 ## Contributing
 
