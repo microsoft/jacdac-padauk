@@ -1,8 +1,10 @@
-# JACDAC PADAUK
+# Jacdac PADAUK
 
-This repository contains an implementation of JACDAC for the PADAUK family of microcontrollers, in particular the PADAUK PMS150C.
+This repository contains an implementation of Jacdac for the PADAUK family of microcontrollers, in particular the PADAUK PMS150C.
 
-Contained in the `button` and `neopixel` folders respectively is code that causes the PMS150C to advertise a button or an RGBLED service. From another JACDAC device, applications can detect different button presses and change the colour of the Neopixel remotely.
+ * Read more about Jacdac at https://aka.ms/jacdac
+
+Contained in the `button` and `neopixel` folders respectively is code that causes the PMS150C to advertise a button or an RGBLED service. From another Jacdac device, applications can detect different button presses and change the colour of the Neopixel remotely.
 
 ## Programming
 
