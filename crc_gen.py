@@ -8,7 +8,7 @@ def jd_crc16(data):
         x ^= x >> 4
         crc = (crc << 8) ^ (x << 12) ^ (x << 5) ^ x
         crc = crc & 0xffff
-    
+
     return (crc & 0xffff)
 
 
@@ -39,21 +39,19 @@ load_table = []
 
 static_overhead = len(out_str)
 
-for k in sorted(out.keys()):    
+for k in sorted(out.keys()):
     #compute difference to add the correct number of nops
-    difference = (int(k) - 1) - (len(out_str) - static_overhead) 
-    
+    difference = (int(k) - 1) - (len(out_str) - static_overhead)
+
     out_str += ["\tgoto\tcrc_jmp_err\r"]*difference
     out_str += ["\tgoto\tload_crc_%s\r" % (k)]
-    
+
     load_table += ["load_crc_%s:\r" % (k)]
     load_table += ["\tmov\ta, 0x%s\r" % out[k]["lb"]]
     load_table += ["\tmov\tlb@crc, a\r"]
     load_table += ["\tmov\ta, 0x%s\r" % out[k]["hb"]]
     load_table += ["\tmov\thb@crc, a\r"]
     load_table += ["\tgoto\tcrc16_l\r"]
-
-
 
 out_lines = out_str + load_table + error_loop
 

@@ -2,15 +2,36 @@
 ; require hardware app timer?
 #define APP_TIMER	1
 
-#define UDID0 		0x11
-#define UDID1 		0x22
-#define UDID2 		0x33
-#define UDID3 		0x44
-#define UDID4 		0x55
-#define UDID5 		0x66
-#define UDID6 		0x77
-#define UDID7 		0x88
+;pin map defines
+#define DESIGN_10_VERSION_1_0	1
+#define DESIGN_10_VERSION_1_1	2
 
+;select pin map here:
+#define PIN_MAP		DESIGN_10_VERSION_1_1
+
+
+#if PIN_MAP == DESIGN_10_VERSION_1_0
+	#define JD_LINE		3
+	#define BUTTON		4
+	#define JD_LED		6
+#elif PIN_MAP == DESIGN_10_VERSION_1_1
+	#define JD_LINE		6
+	#define BUTTON		4
+	#define JD_LED		3
+#else
+	#error
+#endif
+
+#define STATUS_LED_TX_ONLY	1
+#define STATUS_LED_RX_ONLY	2
+#define STATUS_LED_TX_RX	3
+#define STATUS_LED_BLINK_CTRL	4
+
+#define STATUS_LED_MODE		STATUS_LED_TX_ONLY
+
+#define STATUS_LED_ACTIVE_LO	1
+#define STATUS_LED_ACTIVE_HI	2
+#define STATUS_LED_TOGGLE	STATUS_LED_ACTIVE_HI
 
 #define JD_HEADER_SIZE			12
 #define JD_CMD_EVENT 			0x01
@@ -21,19 +42,16 @@
 #define BUTTON_SERVICE_NUMBER2 		0x73
 #define BUTTON_SERVICE_NUMBER3 		0x14
 
-#define BUTTON_EVT_DOWN                	1
-#define BUTTON_EVT_UP                  	2
-#define BUTTON_EVT_CLICK               	3
-#define BUTTON_EVT_LONG_CLICK          	4
-#define BUTTON_EVT_HOLD                	5
-#define BUTTON_EVT_DOUBLE_CLICK        	6
+#define BUTTON_EVT_DOWN                	0x1
+#define BUTTON_EVT_UP                  	0x2
+#define BUTTON_EVT_CLICK               	0x80
+#define BUTTON_EVT_LONG_CLICK          	0x81
+#define BUTTON_EVT_HOLD                	0x82
 
 
 #define SERVICE_NUMBER_CONTROL		0
 #define SERVICE_NUMBER_BUTTON		1
 
-#define CTRL_FRAME_CRCL			0xF1
-#define CTRL_FRAME_CRCH			0x95
 #define CTRL_FRAME_SIZE			12		; payload size only
 #define CTRL_FRAME_FLAGS		0x00
 #define CTRL_SERVICE_NUMBER		0x00
@@ -43,9 +61,6 @@
 #define CTRL_COMMAND_IDENTIFY		0x81
 #define CTRL_COMMAND_RESET		0x82
 
-
-#define BUTTON_FRAME_CRCL		0x41
-#define BUTTON_FRAME_CRCH		0x9b
 #define BUTTON_FRAME_SIZE		8		; payload size only
 #define BUTTON_FRAME_FLAGS		0x00
 #define BUTTON_SERVICE_NUMBER		0x01
@@ -53,26 +68,6 @@
 #define BUTTON_SERVICE_COMMANDH		0x00
 
 #define BUTTON_SERVICE_SIZE		4
-
-;python crc_check.py 080011223344556677880401010002000000
-#define BUTTON_UP_ONLY_CRCL		0xD9
-#define BUTTON_UP_ONLY_CRCH		0xD7
-
-;python crc_check.py 1000112233445566778804010100020000000401010003000000
-#define BUTTON_UP_CLICK_CRCL		0xD8
-#define BUTTON_UP_CLICK_CRCH		0xA6
-
-;python crc_check.py 1000112233445566778804010100020000000401010004000000
-#define BUTTON_UP_LONG_CLICK_CRCL	0xF5
-#define BUTTON_UP_LONG_CLICK_CRCH	0xF7
-
-
-#define JD_LINE		3
-#define BUTTON		4
-#define JD_LED		6
-#define	JD_LED_MSK	0x40
-
-
 
 ; each idle detect loop takes 10 ins. (1.25 us). Idle period is 100 microseconds.
 #define IDLE_COUNTER	80
@@ -101,9 +96,38 @@
 #define BUTTON_THRESH_LONG        	250	; 250 *  4 ms = 1 second
 #define BUTTON_THRESH_HOLD        	120	; 255 + 120 = (375 * 4 ms) = 1500 ms for a hold
 
+; generated using python macro_generator.py for udid  C39AC2CDFF5DD47E (0x7ed45dffcdc29ac3)
+#define UDID0 0xc3
+#define UDID1 0x9a
+#define UDID2 0xc2
+#define UDID3 0xcd
+#define UDID4 0xff
+#define UDID5 0x5d
+#define UDID6 0xd4
+#define UDID7 0x7e
+
+#define CTRL_FRAME_CRCL 0x8b
+#define CTRL_FRAME_CRCH 0x88
+
+#define BUTTON_DOWN_ONLY_CRCL 0x90
+#define BUTTON_DOWN_ONLY_CRCH 0x72
+
+#define BUTTON_UP_ONLY_CRCL 0x4c
+#define BUTTON_UP_ONLY_CRCH 0xe9
+
+#define BUTTON_UP_CLICK_CRCL 0xd4
+#define BUTTON_UP_CLICK_CRCH 0xdd
+
+#define BUTTON_UP_LONG_CLICK_CRCL 0x60
+#define BUTTON_UP_LONG_CLICK_CRCH 0xab
+
+#define BUTTON_UP_HOLD_CRCL 0x74
+#define BUTTON_UP_HOLD_CRCH 0x34
+
+
 .CHIP   PMS150C
 ; Give package map to writer	pcount	VDD	PA0	PA3	PA4	PA5	PA6	PA7	GND	SHORTC_MSK1	SHORTC_MASK1	SHIFT
-.writer package 		6, 	5, 	0,	6, 	1, 	4,	3, 	0,	2, 	0x0007, 	0x0007, 	0
+;.writer package 		6, 	1, 	0,	4, 	27, 	25,	26, 	0,	28, 	0x0007, 	0x0007, 	0
 //{{PADAUK_CODE_OPTION
 	.Code_Option	Security	Disable		// Security 7/8 words Enable
 	.Code_Option	LVR		3.0V
@@ -156,11 +180,11 @@ interrupt:
 	set1	prog_state.BUTTON_CHECK
 
 	t1sn	interrupt_counter.6
-	goto	exit_interrupt	
-	
+	goto	exit_interrupt
+
 	clear	interrupt_counter
 	sl 	period_counter
-	
+
 	t1sn	period_counter.2
 	goto	exit_interrupt
 
@@ -194,7 +218,7 @@ uart_eval_byte:
 uart_test_byte:
 	t0sn	uart_data.0	; test if bit 0 is 0, skip if it is (1/2)
 	goto	uart_tx_1
-	
+
 uart_tx_0:
 	sr	a
 	set0	PA.JD_LINE
@@ -222,6 +246,15 @@ jd_send_start_pulse:
 	set0	PA.JD_LINE
 	call 	delay_10_us
 	set1	PA.JD_LINE
+
+#if (STATUS_LED_MODE == STATUS_LED_TX_ONLY || STATUS_LED_MODE == STATUS_LED_TX_RX)
+	; toggle status LED
+	#if (STATUS_LED_TOGGLE == STATUS_LED_ACTIVE_LO)
+		set0 	pa.JD_LED
+	#else
+		set1	pa.JD_LED
+	#endif
+#endif
 	ret	0x0
 
 jd_send:
@@ -254,6 +287,15 @@ jd_send_end_pulse_end:
 
 	PAPH.JD_LINE	=	1	; enable PA3 pull up
 	PAC.JD_LINE 	=	0	; set PAC as input.
+
+#if (STATUS_LED_MODE == STATUS_LED_TX_ONLY || STATUS_LED_MODE == STATUS_LED_TX_RX)
+	; toggle status LED
+	#if (STATUS_LED_TOGGLE == STATUS_LED_ACTIVE_LO)
+		set1 	pa.JD_LED
+	#else
+		set0	pa.JD_LED
+	#endif
+#endif
 	ret
 
 send_control_packet:
@@ -336,6 +378,7 @@ send_control_packet:
 	call	delay_10_us
 
 	call	jd_send
+
 	engint
 	goto	app
 
@@ -547,7 +590,7 @@ crc16:
 	add	a, packet_buffer[2]
 	mov	gp_counter, a
 
-; generated using python crc_gen.py 12,8,16 0 1122334455667788
+; generated using python macro_generator.py for udid  C39AC2CDFF5DD47E (0x7ed45dffcdc29ac3)
 crc_table:
 	mov	a, packet_buffer[2]
 	pcadd	a
@@ -568,40 +611,39 @@ crc_table:
 	goto	crc_jmp_err
 	goto	load_crc_16
 load_crc_8:
-	mov	a, 0xc7
+	mov	a, 0x31
 	mov	lb@crc, a
-	mov	a, 0xf9
+	mov	a, 0xae
 	mov	hb@crc, a
 	goto	crc16_l
 load_crc_12:
-	mov	a, 0x6a
+	mov	a, 0x9c
 	mov	lb@crc, a
-	mov	a, 0xcc
+	mov	a, 0x9b
 	mov	hb@crc, a
 	goto	crc16_l
 load_crc_16:
-	mov	a, 0x19
+	mov	a, 0xef
 	mov	lb@crc, a
-	mov	a, 0x24
+	mov	a, 0x73
 	mov	hb@crc, a
 	goto	crc16_l
 crc_jmp_err:
 	goto	crc_jmp_err
 
 
-
 crc16_l:
-	; movf  POSTINC0,w        // load w with next databyte 
+	; movf  POSTINC0,w        // load w with next databyte
 	idxm	a, indirect_addr 	; load next data byte
 	inc 	lb@indirect_addr
 
-	; xorwf CRC16.uByte[0],w  // (a^x):(b^y) 
+	; xorwf CRC16.uByte[0],w  // (a^x):(b^y)
 	xor	a, lb@crc
-	; movwf Index             // 
+	; movwf Index             //
 	mov	packet_buffer[0], a
-	; andlw 0xf0              // W = (a^x):0 
+	; andlw 0xf0              // W = (a^x):0
 	and	a, 0xf0
-	; swapf Index,f           // Index = (b^y):(a^x) 
+	; swapf Index,f           // Index = (b^y):(a^x)
 	mov	packet_buffer[1], a	; save working state
 	mov	a, packet_buffer[0]
 	swap	a
@@ -614,32 +656,32 @@ crc16_l:
 	mov	a, packet_buffer[0]
     	; andlw 0xf0
 	and 	a, 0xf0
-    	; xorwf CRC16.uByte[1],W 
+    	; xorwf CRC16.uByte[1],W
 	xor	a, hb@crc
 	; movwf CRC16.uByte[0]
 	mov	lb@crc, a
 
-	; rlcf  Index,W           // use rlf for PIC16 
+	; rlcf  Index,W           // use rlf for PIC16
 	mov	a, packet_buffer[0]
 	slc	a
 	; rlcf  Index,W           // use rlf for PIC16
 	mov	a, packet_buffer[0]
 	slc	a
-	
-	; xorwf CRC16.uByte[0],f 
+
+	; xorwf CRC16.uByte[0],f
 	xor	lb@crc, a
-	; andlw 0xe0 
+	; andlw 0xe0
 	and 	a, 0xe0
-	; xorwf CRC16.uByte[0],f 
+	; xorwf CRC16.uByte[0],f
 	xor	lb@crc, a
 	mov	packet_buffer[1], a	; save
 
-	; swapf Index,F 
+	; swapf Index,F
 	mov	a, packet_buffer[0]
 	swap	a
 	mov	packet_buffer[0], a
 	mov	a, packet_buffer[1]	; restore
-	; xorwf Index,W 
+	; xorwf Index,W
 	xor	a, packet_buffer[0]
 	; movwf CRC16.uByte[1]
 	mov	hb@crc, a
@@ -682,9 +724,13 @@ main:
 	PAPH.JD_LINE	=	1	; enable pull up
 	PAC.JD_LINE	=	0	; set input
 
-	; configure jd led as output 
+	; configure jd led as output
 	PAC.JD_LED 	= 	1	; output
-	PA.JD_LED	= 	0	; high
+#if STATUS_LED_TOGGLE == STATUS_LED_ACTIVE_LO
+	set1 	pa.JD_LED
+#else
+	set0	pa.JD_LED
+#endif
 
 	; configure button as input
 	PAPH.BUTTON	=	1	; enable pull up (default hi for now)
@@ -697,7 +743,7 @@ wait_till_high:
 	mov	a, 0x00
 	mov	INTRQ, a
 	mov	INTEN, a
-	set1		INTEN.T16	
+	set1		INTEN.T16
 	engint
 	$ T16M   	IHRC, /16, BIT12;	; 1 mhz timer, 4 096 us period
 
@@ -720,7 +766,7 @@ app:
 	t0sn	button_state.BUTTON_HI
 	goto	send_up
 
-	t0sn	prog_state.CTRL_PACKET	
+	t0sn	prog_state.CTRL_PACKET
 	goto	send_control_packet
 
 	t1sn	prog_state.BUTTON_CHECK
@@ -760,7 +806,7 @@ check_button_cont:
 	; less than? greater than?
 	mov	a, sigma
 	sub	a, BUTTON_THRESH_HI + 1
-	
+
 	t0sn	FLAG.1
 	goto	button_up
 
@@ -811,7 +857,7 @@ button_up:
 	goto	button_long
 
 	;mov	a, lb@button_counter
-	;sub	a, 
+	;sub	a,
 
 	set1	button_state.BUTTON_CLICK
 	goto	reset_prog_state
@@ -819,7 +865,7 @@ button_up:
 button_long:
 	set1	button_state.BUTTON_LONG_CLICK
 	goto	reset_prog_state
-	
+
 ; do we need a timer for rx timeout?
 jd_receive:
 jd_rx_lo:
@@ -829,7 +875,18 @@ jd_rx_lo:
 	mov	a, (JD_MAX_PACKET_SIZE - 0x01)	; packet buffer is contained in bytes 32-64 of ram, pre-incremented (++i)
 	mov	lb@indirect_addr, a
 
+#if (STATUS_LED_MODE == STATUS_LED_RX_ONLY || STATUS_LED_MODE == STATUS_LED_TX_RX)
+	; toggle status LED
+	#if STATUS_LED_TOGGLE == STATUS_LED_ACTIVE_LO
+		set0 	pa.JD_LED
+	#else
+		set1	pa.JD_LED
+	#endif
+#endif
+
 jd_rx_idle_data:
+; TODO BUG HERE
+; if line goes high, code will get stuck until line next goes lo.
 	t0sn	PA.JD_LINE
 	goto	jd_rx_idle_data
 
@@ -851,7 +908,7 @@ jd_rx_bit_0:
 	or	a, 0x01
 	nop
 	nop
-	
+
 	; BIT 1
 	nop
 	nop
@@ -861,7 +918,7 @@ jd_rx_bit_0:
 	or	a, 0x02
 	nop
 	nop
-	
+
 	; BIT 2
 	nop
 	nop
@@ -871,7 +928,7 @@ jd_rx_bit_0:
 	or	a, 0x04
 	nop
 	nop
-	
+
 	; BIT 3
 	nop
 	nop
@@ -881,7 +938,7 @@ jd_rx_bit_0:
 	or	a, 0x08
 	nop
 	nop
-	
+
 	; BIT 4
 	nop
 	nop
@@ -891,7 +948,7 @@ jd_rx_bit_0:
 	or	a, 0x10
 	nop
 	nop
-	
+
 	; BIT 5
 	nop
 	nop
@@ -911,7 +968,7 @@ jd_rx_bit_0:
 	or	a, 0x40
 	nop
 	nop
-	
+
 	; BIT 7
 	t0sn	indirect_addr.6
 	goto	skip_store
@@ -947,6 +1004,15 @@ skip_store:
 break_detected:
 	t1sn	PA.JD_LINE
 	goto	break_detected
+
+#if STATUS_LED_MODE == STATUS_LED_RX_ONLY || STATUS_LED_MODE == STATUS_LED_TX_RX
+	; toggle status LED
+	#if STATUS_LED_TOGGLE == STATUS_LED_ACTIVE_LO
+		set1 	pa.JD_LED
+	#else
+		set0	pa.JD_LED
+	#endif
+#endif
 
 	mov	a, packet_buffer[4]
 	ceqsn	a, UDID0
@@ -1105,7 +1171,7 @@ delay_10_us:
 sleep:
 	PAC.JD_LINE = 0
 	paph.JD_LINE = 0
-	
+
 	$ PADIER = 0x08
 	mov a, 0x20
 	mov misc, a ; fast wakeup
