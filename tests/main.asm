@@ -3,16 +3,28 @@
 Brilliant ideas:
 - after initial lo-pulse, during loop waiting for first bit of first character, set up timer and hope for nested interrupt on timeout
 - 'addpc mode' statement at the beginning of irq
-- use BIT15 (falling edge INTEGS) INTRQ of T16 to know when to increment software timer (datasheet 9.2.5)
 - keep uart reception running over the max size of packet
-- uart: swapc pa.JD; src uartch
+- uart: swapc pa.JD; src uartch - not available on PMS150 or whatever
 
  */
 
-#define JD_LED		6
-#define JD_TM 4
+JD_LED	equ	6
+JD_TM 	equ	4
 
-#define RAM_Size 0x80
+t16_chk MACRO t16_v, tim, handler
+	mov a, t16_v
+	sub a, tim
+	and a, 0x80
+	cneqsn a, 0x00
+	call handler
+ENDM
+
+t16_set MACRO t16_v, tim, num
+	mov a, t16_v
+	add a, num
+	mov tim, a
+ENDM
+
 
 .CHIP   PFS154
 ; Give package map to writer	pcount	VDD	PA0	PA3	PA4	PA5	PA6	PA7	GND	SHORTC_MSK1	SHORTC_MASK1	SHIFT
@@ -52,7 +64,7 @@ Brilliant ideas:
 interrupt:
 	//pushaf
 
-	INTRQ.6 = 0
+	INTRQ.TM3 = 0
 	PA.JD_TM = 1
 	PA.JD_TM = 0
 
@@ -65,7 +77,7 @@ main:
 	SP	=	main_st
 
 clear_memory:
-	mov a, RAM_Size-1
+	mov a, _SYS(SIZE.RAM)-1
 	mov lb@memidx, a
 	clear hb@memidx
 	mov a, 0x00
@@ -76,12 +88,11 @@ clear_loop:
 
 
 t2_init:
-	TM2S = 0x01
+	$ TM2S 8BIT, /1, /2
 	TM2B = 75 ; irq every 75 instructions, ~9.5us
-	TM2C = 0b0010_00_0_0 ; run off IHRC
+	$ TM2C IHRC
 	INTRQ = 0x00
 	$ INTEN = TM2
-	//INTEN = 0b01000000 ; enable T2 irq only
 
 t16_init:
 #define t16_v0 lb@t16_low
@@ -91,10 +102,8 @@ t16_init:
 	WORD    t16_low
 	WORD    t16_high
 	stt16 t16_low
-	INTEGS = 0b0001_0000 ; falling edge on T16
-	T16M = 0b100_11_111 ; IHRC; /64; INTRQ on BIT15	
-	PA.JD_LED = 1
-	PA.JD_LED = 0
+	$ INTEGS BIT_F ; falling edge on T16
+	$ T16M IHRC, /64, BIT15
 
 pin_init:
 	PAC.JD_LED 	= 	1 ; output
@@ -111,27 +120,20 @@ pin_init:
 loop:
 	call t16_sync
 
-	mov a, t16_v0
-	sub a, freq1
-	and a, 0x80
-	cneqsn a, 0x00
-	goto freq1_hit
-
+	t16_chk t16_v0, freq1, freq1_hit
 	goto loop
 
 freq1_hit:
-	mov a, t16_v0
-	add a, 100
-	mov freq1, a
+	t16_set t16_v0, freq1, 100
 	PA.JD_LED = 1
 	PA.JD_LED = 0
- 	goto loop
+ 	ret
 
 t16_sync:
 	ldt16 t16_low
-	t1sn INTRQ.2
+	t1sn INTRQ.T16
 	ret
-	INTRQ.2 = 0
+	INTRQ.T16 = 0
 	inc lb@t16_high
 	addc hb@t16_high
 	ret
