@@ -11,19 +11,7 @@ Brilliant ideas:
 JD_LED	equ	6
 JD_TM 	equ	4
 
-t16_chk MACRO t16_v, tim, handler
-	mov a, t16_v
-	sub a, tim
-	and a, 0x80
-	cneqsn a, 0x00
-	call handler
-ENDM
-
-t16_set MACRO t16_v, tim, num
-	mov a, t16_v
-	add a, num
-	mov tim, a
-ENDM
+.include t16.asm
 
 
 .CHIP   PFS154
@@ -86,7 +74,6 @@ clear_loop:
 	dzsn lb@memidx
 	goto clear_loop
 
-
 t2_init:
 	$ TM2S 8BIT, /1, /2
 	TM2B = 75 ; irq every 75 instructions, ~9.5us
@@ -94,16 +81,7 @@ t2_init:
 	INTRQ = 0x00
 	$ INTEN = TM2
 
-t16_init:
-#define t16_v0 lb@t16_low
-#define t16_v1 hb@t16_low
-#define t16_v2 lb@t16_high
-#define t16_v3 hb@t16_high
-	WORD    t16_low
-	WORD    t16_high
-	stt16 t16_low
-	$ INTEGS BIT_F ; falling edge on T16
-	$ T16M IHRC, /64, BIT15
+	t16_init
 
 pin_init:
 	PAC.JD_LED 	= 	1 ; output
@@ -119,21 +97,13 @@ pin_init:
 
 loop:
 	call t16_sync
-
-	t16_chk t16_v0, freq1, freq1_hit
+	t16_chk t16_v1, freq1, freq1_hit
 	goto loop
 
 freq1_hit:
-	t16_set t16_v0, freq1, 100
+	t16_set t16_v1, freq1, 10
 	PA.JD_LED = 1
 	PA.JD_LED = 0
  	ret
 
-t16_sync:
-	ldt16 t16_low
-	t1sn INTRQ.T16
-	ret
-	INTRQ.T16 = 0
-	inc lb@t16_high
-	addc hb@t16_high
-	ret
+	t16_impl
