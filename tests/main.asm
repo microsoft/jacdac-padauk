@@ -1,0 +1,137 @@
+/*
+
+Brilliant ideas:
+- after initial lo-pulse, during loop waiting for first bit of first character, set up timer and hope for nested interrupt on timeout
+- 'addpc mode' statement at the beginning of irq
+- use BIT15 (falling edge INTEGS) INTRQ of T16 to know when to increment software timer (datasheet 9.2.5)
+- keep uart reception running over the max size of packet
+- uart: swapc pa.JD; src uartch
+
+ */
+
+#define JD_LED		6
+#define JD_TM 4
+
+#define RAM_Size 0x80
+
+.CHIP   PFS154
+; Give package map to writer	pcount	VDD	PA0	PA3	PA4	PA5	PA6	PA7	GND	SHORTC_MSK1	SHORTC_MASK1	SHIFT
+;.writer package 		6, 	1, 	0,	4, 	27, 	25,	26, 	0,	28, 	0x0007, 	0x0007, 	0
+//{{PADAUK_CODE_OPTION
+	.Code_Option	Security	Disable		// Security 7/8 words Enable
+	.Code_Option	Bootup_Time	Fast
+	.Code_Option	Drive		Normal
+	.Code_Option	Comparator_Edge	All_Edge
+	.Code_Option	LCD2		Disable		// At ICE, LCD always disable, PB0 PA0/3/4 are independent pins
+	.Code_Option	LVR		3.5V
+//}}PADAUK_CODE_OPTION
+
+	; possible program variable memory allocations:
+	;		srt	end
+	; 	BIT	0	16
+	;	WORD	0	30
+	;	BYTE	0	64
+
+	.ramadr 0x00
+	WORD    memidx
+	BYTE	uart_data, tmp0, tmp1
+	WORD	indirect_addr
+
+	.ramadr	0x10
+	WORD	main_st[5]
+
+	WORD	button_counter
+
+	.ramadr	0x20
+	byte 	packet_buffer[32]
+
+	goto	main
+
+
+	.romadr	0x10            // interrupt vector
+interrupt:
+	//pushaf
+
+	INTRQ.6 = 0
+	PA.JD_TM = 1
+	PA.JD_TM = 0
+
+	//popaf
+	reti
+
+
+main:
+	.ADJUST_IC	SYSCLK=IHRC/2, IHRC=16MHz, VDD=3.85V
+	SP	=	main_st
+
+clear_memory:
+	mov a, RAM_Size-1
+	mov lb@memidx, a
+	clear hb@memidx
+	mov a, 0x00
+clear_loop:
+	idxm memidx, a
+	dzsn lb@memidx
+	goto clear_loop
+
+
+t2_init:
+	TM2S = 0x01
+	TM2B = 75 ; irq every 75 instructions, ~9.5us
+	TM2C = 0b0010_00_0_0 ; run off IHRC
+	INTRQ = 0x00
+	$ INTEN = TM2
+	//INTEN = 0b01000000 ; enable T2 irq only
+
+t16_init:
+#define t16_v0 lb@t16_low
+#define t16_v1 hb@t16_low
+#define t16_v2 lb@t16_high
+#define t16_v3 hb@t16_high
+	WORD    t16_low
+	WORD    t16_high
+	stt16 t16_low
+	INTEGS = 0b0001_0000 ; falling edge on T16
+	T16M = 0b100_11_111 ; IHRC; /64; INTRQ on BIT15	
+	PA.JD_LED = 1
+	PA.JD_LED = 0
+
+pin_init:
+	PAC.JD_LED 	= 	1 ; output
+	PAC.JD_TM 	= 	1 ; output
+
+	clear 	uart_data
+	clear   lb@indirect_addr
+	clear   hb@indirect_addr
+	engint
+
+
+	BYTE freq1
+
+loop:
+	call t16_sync
+
+	mov a, t16_v0
+	sub a, freq1
+	and a, 0x80
+	cneqsn a, 0x00
+	goto freq1_hit
+
+	goto loop
+
+freq1_hit:
+	mov a, t16_v0
+	add a, 100
+	mov freq1, a
+	PA.JD_LED = 1
+	PA.JD_LED = 0
+ 	goto loop
+
+t16_sync:
+	ldt16 t16_low
+	t1sn INTRQ.2
+	ret
+	INTRQ.2 = 0
+	inc lb@t16_high
+	addc hb@t16_high
+	ret
