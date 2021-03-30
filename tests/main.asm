@@ -10,6 +10,7 @@ Brilliant ideas:
 
 JD_LED	equ	6
 JD_TM 	equ	4
+JD_D 	equ	7
 
 .include utils.asm
 .include t16.asm
@@ -63,6 +64,8 @@ main:
 	SP	=	main_st
 
 	.clear_memory
+	call rng_init
+	.t16_init
 
 t2_init:
 	$ TM2S 8BIT, /1, /2
@@ -71,13 +74,11 @@ t2_init:
 	INTRQ = 0x00
 	$ INTEN = TM2
 
-	.t16_init
-
 pin_init:
 	PAC.JD_LED 	= 	1 ; output
 	PAC.JD_TM 	= 	1 ; output
 
-			engint
+	engint
 
 	call fill_id
 	nop
@@ -90,7 +91,7 @@ pin_init:
 	.ldbytes packet_buffer, <0xde, 0xad, 0xf0, 0x0d>
 
 xloop:
-	disgint
+	//disgint
 	a = packet_buffer
 	mov lb@memidx, a
 	mov a, 4
@@ -127,3 +128,82 @@ freq1_hit:
 
 .include crc16.asm
 .include devid.asm
+.include rng.asm
+
+uart_rx:
+.repeat 10
+	t1sn PA.JD_D
+	goto uart_rx_lo
+.endm
+uart_rx_lo:
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.0
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.1
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.2
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.3
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.4
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.5
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.6
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.7
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	goto uart_rx

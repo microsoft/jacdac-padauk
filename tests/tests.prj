@@ -25,4 +25,5 @@ ICE=0 6 2 F0A
 ~crc16.asm
 ~devid.asm
 ~t16.asm
+~rng.asm
 ~$:INC_PDK\PFS154.INC
