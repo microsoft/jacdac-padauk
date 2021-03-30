@@ -97,13 +97,14 @@ pin_init:
 
 loop:
 	call t16_sync
-	t16_chk t16_v1, freq1, freq1_hit
+	t16_chk t16_1ms, freq1, freq1_hit
 	goto loop
 
 freq1_hit:
-	t16_set t16_v1, freq1, 10
+	t16_set t16_1ms, freq1, 10
 	PA.JD_LED = 1
 	PA.JD_LED = 0
  	ret
 
+// Module implementations
 	t16_impl

@@ -1,7 +1,7 @@
-#define t16_v0 lb@t16_low
-#define t16_v1 hb@t16_low
-#define t16_v2 lb@t16_high
-#define t16_v3 hb@t16_high
+#define t16_4us lb@t16_low
+#define t16_1ms hb@t16_low
+#define t16_262ms lb@t16_high
+#define t16_67s hb@t16_high
 
 t16_chk MACRO t16_v, tim, handler
 	mov a, t16_v
