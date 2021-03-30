@@ -102,6 +102,9 @@ pin_init:
 
 			engint
 
+	call fill_id
+	nop
+	nop
 	loadbytes packet_buffer, <0xde, 0xad, 0xf0, 0x0d>
 
 xloop:
@@ -190,3 +193,41 @@ crc16_loop:
 // Module implementations
 	t16_impl
 
+fill_id:
+.IF 1
+	a = packet_buffer+4+7
+	mov lb@memidx, a
+	mov a, 8
+	mov tmp0, a
+fill_loop:
+	mov a, tmp0
+	call get_id
+	idxm memidx, a
+	dec lb@memidx
+	dzsn tmp0
+	goto fill_loop
+.ELSE
+	// 24 instructions, the above is 10; but maybe we'll need a version not clobbering memidx, tmp0
+	.forc k, <01234567>
+	mov a, k+1
+	call get_id
+	mov packet_buffer[4+k], a
+	.endm
+.ENDIF
+	ret
+
+	// requires a=1...8
+get_id:
+	pcadd a
+.IFDEF RELEASE
+	.User_Roll 8 BYTE, "genid.bat", "ids.txt"
+.ELSE
+	ret 0x01
+	ret 0x23
+	ret 0x45
+	ret 0x67
+	ret 0x89
+	ret 0xab
+	ret 0xcd
+	ret 0xef
+.ENDIF
