@@ -3,7 +3,7 @@
 #define t16_262ms lb@t16_high
 #define t16_67s hb@t16_high
 
-t16_chk MACRO t16_v, tim, handler
+.t16_chk MACRO t16_v, tim, handler
 	mov a, t16_v
 	sub a, tim
 	and a, 0x80
@@ -11,13 +11,13 @@ t16_chk MACRO t16_v, tim, handler
 	call handler
 ENDM
 
-t16_set MACRO t16_v, tim, num
+.t16_set MACRO t16_v, tim, num
 	mov a, t16_v
 	add a, num
 	mov tim, a
 ENDM
 
-t16_init MACRO
+.t16_init MACRO
 	WORD    t16_low
 	WORD    t16_high
 t16_init_:
@@ -27,7 +27,7 @@ t16_init_:
 ENDM
 
 
-t16_impl MACRO
+.t16_impl MACRO
 t16_sync:
 	ldt16 t16_low
 	t1sn INTRQ.T16

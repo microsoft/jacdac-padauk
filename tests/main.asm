@@ -13,13 +13,18 @@ JD_TM 	equ	4
 
 .include t16.asm
 
-loadbytes MACRO dst, bytes
+.ldbytes MACRO dst, bytes
 	_cnt => 0
 	.for b, <bytes>
 		mov a, b
 		mov dst[_cnt], a
 		_cnt => _cnt + 1
 	.endm
+ENDM
+
+.mova MACRO dst, val
+	mov a, val
+	mov dst, a
 ENDM
 
 
@@ -74,8 +79,7 @@ main:
 	SP	=	main_st
 
 clear_memory:
-	mov a, _SYS(SIZE.RAM)-1
-	mov lb@memidx, a
+	.mova lb@memidx, _SYS(SIZE.RAM)-1
 	clear hb@memidx
 	mov a, 0x00
 clear_loop:
@@ -90,7 +94,7 @@ t2_init:
 	INTRQ = 0x00
 	$ INTEN = TM2
 
-	t16_init
+	.t16_init
 
 pin_init:
 	PAC.JD_LED 	= 	1 ; output
@@ -105,7 +109,12 @@ pin_init:
 	call fill_id
 	nop
 	nop
-	loadbytes packet_buffer, <0xde, 0xad, 0xf0, 0x0d>
+	clear packet_buffer[4+3]
+	nop
+	call check_id
+	nop
+	nop
+	.ldbytes packet_buffer, <0xde, 0xad, 0xf0, 0x0d>
 
 xloop:
 	disgint
@@ -131,11 +140,11 @@ xloop:
 
 loop:
 	call t16_sync
-	t16_chk t16_1ms, freq1, freq1_hit
+	.t16_chk t16_1ms, freq1, freq1_hit
 	goto loop
 
 freq1_hit:
-	t16_set t16_1ms, freq1, 10
+	.t16_set t16_1ms, freq1, 10
 	PA.JD_LED = 1
 	PA.JD_LED = 0
  	ret
@@ -180,8 +189,7 @@ crc16_loop:
 	sr a
 	sr a
 	xor crc_h, a // crc_h done
-	mov a, tmp1
-	mov crc_l, a
+	.mova crc_l, tmp1
 	swap a
 	and a, 0xf0
 	sl a
@@ -191,32 +199,40 @@ crc16_loop:
 	ret
 
 // Module implementations
-	t16_impl
+	.t16_impl
+
+IDSIZE equ 8
 
 fill_id:
-.IF 1
-	a = packet_buffer+4+7
+	a = packet_buffer+4+IDSIZE-1
 	mov lb@memidx, a
-	mov a, 8
-	mov tmp0, a
-fill_loop:
+	.mova tmp0, IDSIZE
+@@:
 	mov a, tmp0
 	call get_id
 	idxm memidx, a
 	dec lb@memidx
 	dzsn tmp0
-	goto fill_loop
-.ELSE
-	// 24 instructions, the above is 10; but maybe we'll need a version not clobbering memidx, tmp0
-	.forc k, <01234567>
-	mov a, k+1
-	call get_id
-	mov packet_buffer[4+k], a
-	.endm
-.ENDIF
+	goto @B
 	ret
 
-	// requires a=1...8
+check_id:
+	a = packet_buffer+4+IDSIZE-1
+	mov lb@memidx, a
+	.mova tmp0, IDSIZE
+@@:
+	mov a, tmp0
+	call get_id
+	mov tmp1, a
+	idxm a, memidx
+	ceqsn a, tmp1
+	ret 0
+	dec lb@memidx
+	dzsn tmp0
+	goto @B
+	ret 1
+
+// requires a=1...8
 get_id:
 	pcadd a
 .IFDEF RELEASE
