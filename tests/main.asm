@@ -13,6 +13,15 @@ JD_TM 	equ	4
 
 .include t16.asm
 
+loadbytes MACRO dst, bytes
+	_cnt => 0
+	.for b, <bytes>
+		mov a, b
+		mov dst[_cnt], a
+		_cnt => _cnt + 1
+	.endm
+ENDM
+
 
 .CHIP   PFS154
 ; Give package map to writer	pcount	VDD	PA0	PA3	PA4	PA5	PA6	PA7	GND	SHORTC_MSK1	SHORTC_MASK1	SHIFT
@@ -52,7 +61,7 @@ JD_TM 	equ	4
 interrupt:
 	//pushaf
 
-	INTRQ.TM3 = 0
+	INTRQ.TM2 = 0
 	PA.JD_TM = 1
 	PA.JD_TM = 0
 
@@ -90,7 +99,29 @@ pin_init:
 	clear 	uart_data
 	clear   lb@indirect_addr
 	clear   hb@indirect_addr
-	engint
+
+			engint
+
+	loadbytes packet_buffer, <0xde, 0xad, 0xf0, 0x0d>
+
+xloop:
+	disgint
+	a = packet_buffer
+	mov lb@memidx, a
+	mov a, 4
+	PA.JD_LED = 1
+	call crc16
+	PA.JD_LED = 0
+
+	a = packet_buffer
+	mov lb@memidx, a
+	mov a, 20
+	PA.JD_LED = 1
+	call crc16
+	PA.JD_LED = 0
+	goto xloop
+
+
 
 
 	BYTE freq1
@@ -106,5 +137,56 @@ freq1_hit:
 	PA.JD_LED = 0
  	ret
 
+/*
+uint16_t jd_crc16(const void *data, uint32_t size) {
+    const uint8_t *ptr = (const uint8_t *)data;
+    uint16_t crc = 0xffff;
+    while (size--) {
+        uint8_t data = *ptr++;
+        uint8_t x = (crc >> 8) ^ data;
+        x ^= x >> 4;
+        crc = (crc << 8) ^ (x << 12) ^ (x << 5) ^ x;
+    }
+    return crc;
+}
+ */
+
+// ~27 cycles per byte
+crc16:
+	BYTE crc_l
+	BYTE crc_h
+	mov tmp0, a // length
+	mov a, 0xff
+	mov crc_l, a
+	mov crc_h, a
+crc16_loop:
+	idxm a, memidx
+	inc lb@memidx
+	xor a, crc_h
+	mov tmp1, a
+	swap a
+	and a, 0x0f
+	xor tmp1, a // tmp1==x
+	mov a, tmp1
+	swap a
+	and a, 0xf0
+	xor a, crc_l
+	mov crc_h, a
+	mov a, tmp1
+	sr a
+	sr a
+	sr a
+	xor crc_h, a // crc_h done
+	mov a, tmp1
+	mov crc_l, a
+	swap a
+	and a, 0xf0
+	sl a
+	xor crc_l, a // crc_l done
+	dzsn tmp0
+	goto crc16_loop
+	ret
+
 // Module implementations
 	t16_impl
+
