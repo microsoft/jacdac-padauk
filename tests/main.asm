@@ -11,22 +11,8 @@ Brilliant ideas:
 JD_LED	equ	6
 JD_TM 	equ	4
 
+.include utils.asm
 .include t16.asm
-
-.ldbytes MACRO dst, bytes
-	_cnt => 0
-	.for b, <bytes>
-		mov a, b
-		mov dst[_cnt], a
-		_cnt => _cnt + 1
-	.endm
-ENDM
-
-.mova MACRO dst, val
-	mov a, val
-	mov dst, a
-ENDM
-
 
 .CHIP   PFS154
 ; Give package map to writer	pcount	VDD	PA0	PA3	PA4	PA5	PA6	PA7	GND	SHORTC_MSK1	SHORTC_MASK1	SHIFT
@@ -49,11 +35,9 @@ ENDM
 	.ramadr 0x00
 	WORD    memidx
 	BYTE	uart_data, tmp0, tmp1
-	WORD	indirect_addr
 
 	.ramadr	0x10
 	WORD	main_st[5]
-
 	WORD	button_counter
 
 	.ramadr	0x20
@@ -78,14 +62,7 @@ main:
 	.ADJUST_IC	SYSCLK=IHRC/2, IHRC=16MHz, VDD=3.85V
 	SP	=	main_st
 
-clear_memory:
-	.mova lb@memidx, _SYS(SIZE.RAM)-1
-	clear hb@memidx
-	mov a, 0x00
-clear_loop:
-	idxm memidx, a
-	dzsn lb@memidx
-	goto clear_loop
+	.clear_memory
 
 t2_init:
 	$ TM2S 8BIT, /1, /2
@@ -99,10 +76,6 @@ t2_init:
 pin_init:
 	PAC.JD_LED 	= 	1 ; output
 	PAC.JD_TM 	= 	1 ; output
-
-	clear 	uart_data
-	clear   lb@indirect_addr
-	clear   hb@indirect_addr
 
 			engint
 
@@ -149,101 +122,8 @@ freq1_hit:
 	PA.JD_LED = 0
  	ret
 
-/*
-uint16_t jd_crc16(const void *data, uint32_t size) {
-    const uint8_t *ptr = (const uint8_t *)data;
-    uint16_t crc = 0xffff;
-    while (size--) {
-        uint8_t data = *ptr++;
-        uint8_t x = (crc >> 8) ^ data;
-        x ^= x >> 4;
-        crc = (crc << 8) ^ (x << 12) ^ (x << 5) ^ x;
-    }
-    return crc;
-}
- */
-
-// ~27 cycles per byte
-crc16:
-	BYTE crc_l
-	BYTE crc_h
-	mov tmp0, a // length
-	mov a, 0xff
-	mov crc_l, a
-	mov crc_h, a
-crc16_loop:
-	idxm a, memidx
-	inc lb@memidx
-	xor a, crc_h
-	mov tmp1, a
-	swap a
-	and a, 0x0f
-	xor tmp1, a // tmp1==x
-	mov a, tmp1
-	swap a
-	and a, 0xf0
-	xor a, crc_l
-	mov crc_h, a
-	mov a, tmp1
-	sr a
-	sr a
-	sr a
-	xor crc_h, a // crc_h done
-	.mova crc_l, tmp1
-	swap a
-	and a, 0xf0
-	sl a
-	xor crc_l, a // crc_l done
-	dzsn tmp0
-	goto crc16_loop
-	ret
-
 // Module implementations
 	.t16_impl
 
-IDSIZE equ 8
-
-fill_id:
-	a = packet_buffer+4+IDSIZE-1
-	mov lb@memidx, a
-	.mova tmp0, IDSIZE
-@@:
-	mov a, tmp0
-	call get_id
-	idxm memidx, a
-	dec lb@memidx
-	dzsn tmp0
-	goto @B
-	ret
-
-check_id:
-	a = packet_buffer+4+IDSIZE-1
-	mov lb@memidx, a
-	.mova tmp0, IDSIZE
-@@:
-	mov a, tmp0
-	call get_id
-	mov tmp1, a
-	idxm a, memidx
-	ceqsn a, tmp1
-	ret 0
-	dec lb@memidx
-	dzsn tmp0
-	goto @B
-	ret 1
-
-// requires a=1...8
-get_id:
-	pcadd a
-.IFDEF RELEASE
-	.User_Roll 8 BYTE, "genid.bat", "ids.txt"
-.ELSE
-	ret 0x01
-	ret 0x23
-	ret 0x45
-	ret 0x67
-	ret 0x89
-	ret 0xab
-	ret 0xcd
-	ret 0xef
-.ENDIF
+.include crc16.asm
+.include devid.asm

@@ -21,5 +21,8 @@ Mark=51 1
 ICE=0 6 2 F0A
 [HEAD]
 [DEPEND]
+~utils.asm
+~crc16.asm
+~devid.asm
 ~t16.asm
 ~$:INC_PDK\PFS154.INC
