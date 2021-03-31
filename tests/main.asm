@@ -1,17 +1,13 @@
 /*
-
 Brilliant ideas:
-- after initial lo-pulse, during loop waiting for first bit of first character, set up timer and hope for nested interrupt on timeout
 - 'addpc mode' statement at the beginning of irq
-- keep uart reception running over the max size of packet
-- uart: swapc pa.JD; src uartch - not available on PMS150 or whatever
-
  */
 
 JD_LED	equ	6
 JD_TM 	equ	4
 JD_D 	equ	7
 f_in_rx equ 0
+buffer_size equ 24
 
 .include utils.asm
 .include t16.asm
@@ -44,7 +40,7 @@ f_in_rx equ 0
 	WORD	button_counter
 
 	.ramadr	0x20
-	byte 	packet_buffer[32]
+	byte 	packet_buffer[buffer_size+1] // needs one more byte for "the rest of the packet"
 
 	goto	main
 
@@ -60,15 +56,19 @@ interrupt:
 	pushaf
 
 	set1 flags.f_in_rx
-	// == $ TM2S 8BIT, /1, /18 // ~180us
-	.mova TM2S, 0b0_00_10001
+	$ TM2S 8BIT, /1, /14 // ~140us
 	.mova TM2CT, 0
 	engint
-
+	
 	// wait for end of lo pulse
 @@:
 	t1sn PA.JD_D
 	goto @b
+
+	a = packet_buffer
+	mov lb@memidx, a
+	.mova tmp0, buffer_size+1
+	clear uart_data
 
 	// wait for serial transmission to start
 @@:
@@ -98,37 +98,96 @@ leave_irq:
 	reti
 
 
-.get_bit MACRO n	
-	nop
-	PA.JD_LED = 1
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.n
-	PA.JD_LED = 0
-	nop
-	nop
-ENDM
-
 uart_rx_lo_first:
+	$ TM2S 8BIT, /1, /2	 // 2T
 	nop
-	goto uart_rx_lo_skip
+	nop
+	goto uart_rx_lo_skip // 2T
 
 uart_rx:
-.repeat 10 // 80 repetitions = 20us - max wait time
+.repeat 10
 	t1sn PA.JD_D
 	goto uart_rx_lo
 .endm
 	goto uart_rx
 
 uart_rx_lo:
+	xch uart_data    // a==0 here, so this clears uart_data for next round
+	idxm memidx, a   // 2T
+	dzsn tmp0        // tmp0--
+	inc lb@memidx    // when tmp0 reaches 0, we stop incrementing memidx
+	t0sn ZF          // if tmp0==0
+	inc tmp0         //     tmp0++ -> keep tmp0 at 0
+
+uart_rx_lo_skip:
+	t0sn PA.JD_D
+	set1 uart_data.0
 	nop
 	nop
 	nop
 
-uart_rx_lo_skip:
-	.forc n, <01234567>
-	.get_bit n
-	.endm
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.1
+	nop
+	nop
+	nop
+
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.2
+	nop
+	nop
+	nop
+
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.3
+	nop
+	nop
+	nop
+
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.4
+	nop
+	nop
+	nop
+
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.5
+	nop
+	nop
+	nop
+
+	nop
+	nop
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.6
+	nop
+	nop
+	nop
+
+	nop
+	PA.JD_LED = 1 // bit marking
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.7
+	PA.JD_LED = 0 // bit marking
+	nop
+	nop
 
 	nop
 	nop
