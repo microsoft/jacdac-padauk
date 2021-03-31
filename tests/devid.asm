@@ -13,7 +13,7 @@ fill_id:
 	goto @B
 	ret
 
-check_id:
+.check_id MACRO fail_lbl
 	a = packet_buffer+4+IDSIZE-1
 	mov lb@memidx, a
 	.mova tmp0, IDSIZE
@@ -23,11 +23,11 @@ check_id:
 	mov tmp1, a
 	idxm a, memidx
 	ceqsn a, tmp1
-	ret 0
+	goto fail_lbl
 	dec lb@memidx
 	dzsn tmp0
 	goto @B
-	ret 1
+ENDM
 
 // requires a=1...8
 get_id:

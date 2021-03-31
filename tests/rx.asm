@@ -37,6 +37,7 @@ interrupt:
 .endm
 	goto @b
 
+    .include devid.asm
 
 uart_rx_lo_first:
 	$ TM2S 8BIT, /1, /3	 // 2T
@@ -177,14 +178,16 @@ leave_irq:
 
 	.mova tmp0, packet_buffer[3]
 	t1sn tmp0.JD_FRAME_FLAG_COMMAND
-	goto _not_interested // this is a report
+	goto not_interested // this is a report
 	t0sn tmp0.JD_FRAME_FLAG_VNEXT
 	goto pkt_error
+
+    .check_id not_interested
 
 // JD_FRAME_FLAG_ACK_REQUESTED
 // JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
 
-_not_interested:
+not_interested:
 _do_leave:
 	set0 flags.f_in_rx
 	.mova TM2CT, 0

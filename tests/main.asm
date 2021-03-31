@@ -55,11 +55,8 @@ crc_size equ 2
 	goto	main
 
 	.include rx.asm
-
 	.include crc16.asm
-	.include devid.asm
 	.include rng.asm
-
 
 main:
 	.ADJUST_IC	SYSCLK=IHRC/2, IHRC=16MHz, VDD=3.85V
