@@ -11,6 +11,7 @@ Brilliant ideas:
 JD_LED	equ	6
 JD_TM 	equ	4
 JD_D 	equ	7
+f_in_rx equ 0
 
 .include utils.asm
 .include t16.asm
@@ -35,6 +36,7 @@ JD_D 	equ	7
 
 	.ramadr 0x00
 	WORD    memidx
+	BYTE    flags
 	BYTE	uart_data, tmp0, tmp1
 
 	.ramadr	0x10
@@ -50,13 +52,18 @@ JD_D 	equ	7
 	.romadr	0x10            // interrupt vector
 interrupt:
 	INTRQ.TM2 = 0
+	t0sn flags.f_in_rx
+	goto timeout
 	t0sn PA.JD_D
 	reti
-	
+		
 	pushaf
 
-	PA.JD_TM = 1
-	PA.JD_TM = 0
+	set1 flags.f_in_rx
+	// == $ TM2S 8BIT, /1, /18 // ~180us
+	.mova TM2S, 0b0_00_10001
+	.mova TM2CT, 0
+	engint
 
 	// wait for end of lo pulse
 @@:
@@ -65,11 +72,30 @@ interrupt:
 
 	// wait for serial transmission to start
 @@:
-.repeat 40
+.repeat 20
 	t1sn PA.JD_D
-	goto uart_rx_lo
+	goto uart_rx_lo_first
 .endm
 	goto @b
+
+timeout:
+	// this is nested IRQ; we want to return to original code, not outer interrupt
+	// TODO: try fake popaf
+	mov a, SP
+	sub a, 2
+	mov SP, a
+leave_irq:
+	set0 flags.f_in_rx
+	.mova TM2CT, 0
+	$ TM2S 8BIT, /1, /1
+	
+	PA.JD_TM = 1
+	PA.JD_TM = 0
+	PA.JD_TM = 1
+	PA.JD_TM = 0
+
+	popaf
+	reti
 
 
 .get_bit MACRO n	
@@ -83,21 +109,23 @@ interrupt:
 	nop
 ENDM
 
+uart_rx_lo_first:
+	nop
+	goto uart_rx_lo_skip
+
 uart_rx:
-	PA.JD_TM = 1
-.repeat 80 // 80 repetitions = 20us - max wait time
+.repeat 10 // 80 repetitions = 20us - max wait time
 	t1sn PA.JD_D
 	goto uart_rx_lo
 .endm
-	popaf
-	reti
+	goto uart_rx
 
 uart_rx_lo:
-	// potentially, can add one more cycle here - measure it?
-	PA.JD_TM = 0
+	nop
 	nop
 	nop
 
+uart_rx_lo_skip:
 	.forc n, <01234567>
 	.get_bit n
 	.endm
@@ -105,11 +133,11 @@ uart_rx_lo:
 	nop
 	nop
 	nop
-	nop
-	nop
-	goto uart_rx
-	ret
 
+	nop
+	mov a, 0
+	mov TM2CT, a
+	goto uart_rx
 
 main:
 	.ADJUST_IC	SYSCLK=IHRC/2, IHRC=16MHz, VDD=3.85V
@@ -120,9 +148,9 @@ main:
 	.t16_init
 
 t2_init:
-	$ TM2S 8BIT, /1, /2
+	$ TM2S 8BIT, /1, /1
 	TM2B = 75 ; irq every 75 instructions, ~9.5us
-	$ TM2C IHRC
+	$ TM2C SYSCLK
 	INTRQ = 0x00
 	$ INTEN = TM2
 
@@ -140,6 +168,8 @@ loop:
 	goto loop
 
 freq1_hit:
+	PA.JD_TM = 1
+	PA.JD_TM = 0
 	.t16_set t16_1ms, freq1, 10
  	ret
 
