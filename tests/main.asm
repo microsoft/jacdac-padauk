@@ -8,7 +8,15 @@ JD_TM 	equ	4
 JD_D 	equ	7
 f_in_rx equ 0
 f_in_crc equ 1
-buffer_size equ 24
+buffer_size equ 32
+frame_header_size equ 12
+crc_size equ 2
+
+#define JD_FRAME_FLAG_COMMAND 1
+#define JD_FRAME_FLAG_ACK_REQUESTED 2
+#define JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS 3
+#define JD_FRAME_FLAG_VNEXT 7
+
 
 .include utils.asm
 .include t16.asm
@@ -71,13 +79,11 @@ interrupt:
 	mov lb@memidx, a
 	.mova tmp0, buffer_size+1
 	clear uart_data
-	.mova tmp2, -3
+	.mova tmp2, -crc_size-1
 
 	mov a, 0xff
 	mov crc_l, a
 	mov crc_h, a
-
-
 
 	// wait for serial transmission to start
 @@:
@@ -100,18 +106,39 @@ timeout:
 	sub a, 2
 	mov SP, a
 leave_irq:
+	mov a, packet_buffer[2]
+	sub a, buffer_size-frame_header_size+1
+	t1sn CF
+	goto pkt_error	
+	mov a, crc_l
+	ceqsn a, packet_buffer[0]
+	goto pkt_error
+	mov a, crc_h
+	ceqsn a, packet_buffer[1]
+	goto pkt_error
+
+	.mova tmp0, packet_buffer[3]
+	t1sn tmp0.JD_FRAME_FLAG_COMMAND
+	goto _not_interested // this is a report
+	t0sn tmp0.JD_FRAME_FLAG_VNEXT
+	goto pkt_error
+
+// JD_FRAME_FLAG_ACK_REQUESTED
+// JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
+
+_not_interested:
+_do_leave:
 	set0 flags.f_in_rx
 	.mova TM2CT, 0
 	$ TM2S 8BIT, /1, /1
-	
-	PA.JD_TM = 1
-	PA.JD_TM = 0
-	PA.JD_TM = 1
-	PA.JD_TM = 0
 
 	popaf
 	reti
 
+pkt_error:
+	PA.JD_TM = 1
+	PA.JD_TM = 0
+	goto _do_leave
 
 uart_rx_lo_first:
 	$ TM2S 8BIT, /1, /3	 // 2T
@@ -125,7 +152,6 @@ uart_rx:
 	goto uart_rx_lo
 .endm
 	goto uart_rx
-
 
 uart_rx_lo:
 	xch uart_data    // a==0 here, so this clears uart_data for next round
@@ -185,10 +211,12 @@ uart_rx_lo_skip:
 		t0sn PA.JD_D
 		set1 uart_data.4
 
+	// check if we're in CRC range - after first two bytes of stored crc, and before the end of the whole packet
 	mov a, packet_buffer[2]
-	add a, 9
+	add a, frame_header_size-crc_size-1
 	sub a, tmp2
 
+	// if in CRC range, store into crc_l
 	mov a, crc_l0
 	t1sn CF
 	mov crc_l, a
@@ -196,13 +224,14 @@ uart_rx_lo_skip:
 		t0sn PA.JD_D
 		set1 uart_data.5
 
+	// if in CRC range, store into crc_h
 	mov a, crc_h0
 	t1sn CF
 	mov crc_h, a
 
-	t1sn CF
-	PA.JD_LED = 1
-	PA.JD_LED = 0
+	nop
+	nop
+	nop
 	
 		t0sn PA.JD_D
 		set1 uart_data.6
@@ -225,7 +254,6 @@ uart_rx_lo_skip:
 	nop
 	nop
 	nop
-
 
 	mov a, 0
 	mov TM2CT, a
@@ -260,8 +288,8 @@ loop:
 	goto loop
 
 freq1_hit:
-	PA.JD_TM = 1
-	PA.JD_TM = 0
+	//PA.JD_TM = 1
+	//PA.JD_TM = 0
 	.t16_set t16_1ms, freq1, 10
  	ret
 
