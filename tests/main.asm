@@ -7,6 +7,7 @@ JD_LED	equ	6
 JD_TM 	equ	4
 JD_D 	equ	7
 f_in_rx equ 0
+f_in_crc equ 1
 buffer_size equ 24
 
 .include utils.asm
@@ -33,9 +34,10 @@ buffer_size equ 24
 	.ramadr 0x00
 	WORD    memidx
 	BYTE    flags
-	BYTE	uart_data, tmp0, tmp1
+	BYTE	uart_data, tmp0, tmp1, tmp2
+	BYTE	crc_l, crc_h, crc_d, crc_l0, crc_h0
 
-	.ramadr	0x10
+	// .ramadr	0x10
 	WORD	main_st[5]
 	WORD	button_counter
 
@@ -69,6 +71,13 @@ interrupt:
 	mov lb@memidx, a
 	.mova tmp0, buffer_size+1
 	clear uart_data
+	.mova tmp2, -3
+
+	mov a, 0xff
+	mov crc_l, a
+	mov crc_h, a
+
+
 
 	// wait for serial transmission to start
 @@:
@@ -77,6 +86,12 @@ interrupt:
 	goto uart_rx_lo_first
 .endm
 	goto @b
+
+
+	.include crc16.asm
+	.include devid.asm
+	.include rng.asm
+
 
 timeout:
 	// this is nested IRQ; we want to return to original code, not outer interrupt
@@ -99,7 +114,7 @@ leave_irq:
 
 
 uart_rx_lo_first:
-	$ TM2S 8BIT, /1, /2	 // 2T
+	$ TM2S 8BIT, /1, /3	 // 2T
 	nop
 	nop
 	goto uart_rx_lo_skip // 2T
@@ -111,6 +126,7 @@ uart_rx:
 .endm
 	goto uart_rx
 
+
 uart_rx_lo:
 	xch uart_data    // a==0 here, so this clears uart_data for next round
 	idxm memidx, a   // 2T
@@ -119,81 +135,98 @@ uart_rx_lo:
 	t0sn ZF          // if tmp0==0
 	inc tmp0         //     tmp0++ -> keep tmp0 at 0
 
+
 uart_rx_lo_skip:
-	t0sn PA.JD_D
-	set1 uart_data.0
+		t0sn PA.JD_D
+		set1 uart_data.0
+
+	// uint8_t x = (crc >> 8) ^ data;
+	mov a, crc_d
+	xor a, crc_h
+	mov tmp1, a
+	// x ^= x >> 4;
+	swap a
+	and a, 0x0f
+	xor tmp1, a // tmp1==x	
+
+		t0sn PA.JD_D
+		set1 uart_data.1
+
+	// crc = (crc << 8) ^ (x << 12) ^ (x << 5) ^ x; =>
+	// crc_h = crc_l ^ (x << 4) ^ (x >> 3)
+	mov a, tmp1
+	swap a
+	and a, 0xf0
+	xor a, crc_l
+	mov crc_h0, a
+	mov a, tmp1
+
+		t0sn PA.JD_D
+		set1 uart_data.2
+
+	sr a
+	sr a
+	sr a
+	xor crc_h0, a
 	nop
 	nop
-	nop
+
+		t0sn PA.JD_D
+		set1 uart_data.3
+
+	// crc_l = (x << 5) ^ x
+	mov a, tmp1
+	mov crc_l0, a
+	swap a
+	and a, 0xf0
+	sl a
+	xor crc_l0, a
+
+		t0sn PA.JD_D
+		set1 uart_data.4
+
+	mov a, packet_buffer[2]
+	add a, 9
+	sub a, tmp2
+
+	mov a, crc_l0
+	t1sn CF
+	mov crc_l, a
+
+		t0sn PA.JD_D
+		set1 uart_data.5
+
+	mov a, crc_h0
+	t1sn CF
+	mov crc_h, a
+
+	t1sn CF
+	PA.JD_LED = 1
+	PA.JD_LED = 0
+	
+		t0sn PA.JD_D
+		set1 uart_data.6
 
 	nop
 	nop
 	nop
-	t0sn PA.JD_D
-	set1 uart_data.1
 	nop
-	nop
-	nop
+	
+		PA.JD_LED = 1 // bit marking
+		nop
+		t0sn PA.JD_D
+		set1 uart_data.7 // 9T excluding goto uart_rx
+		PA.JD_LED = 0 // bit marking
 
-	nop
-	nop
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.2
-	nop
-	nop
-	nop
-
-	nop
-	nop
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.3
-	nop
-	nop
-	nop
-
-	nop
-	nop
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.4
-	nop
-	nop
-	nop
-
-	nop
-	nop
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.5
-	nop
-	nop
-	nop
-
-	nop
-	nop
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.6
-	nop
-	nop
-	nop
-
-	nop
-	PA.JD_LED = 1 // bit marking
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.7
-	PA.JD_LED = 0 // bit marking
-	nop
-	nop
+	inc tmp2
+	mov a, uart_data
+	mov crc_d, a
 
 	nop
 	nop
 	nop
 
-	nop
+
 	mov a, 0
 	mov TM2CT, a
 	goto uart_rx
@@ -234,8 +267,4 @@ freq1_hit:
 
 // Module implementations
 	.t16_impl
-
-.include crc16.asm
-.include devid.asm
-.include rng.asm
 

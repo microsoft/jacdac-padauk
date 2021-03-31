@@ -12,8 +12,6 @@ uint16_t jd_crc16(const void *data, uint32_t size) {
 }
  */
 
-	BYTE crc_l
-	BYTE crc_h
 
 // ~27 cycles per byte
 crc16:
