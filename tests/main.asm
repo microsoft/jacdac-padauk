@@ -8,7 +8,7 @@ JD_TM 	equ	4
 JD_D 	equ	7
 f_in_rx equ 0
 f_in_crc equ 1
-buffer_size equ 32
+buffer_size equ 20
 frame_header_size equ 12
 crc_size equ 2
 
@@ -43,15 +43,19 @@ crc_size equ 2
 	BYTE    flags
 	BYTE	rx_data, tmp0, tmp1, tmp2
 	BYTE	crc_l, crc_h, crc_d, crc_l0, crc_h0
+	WORD    memidx2
 
 	BYTE freq1
 
-	// .ramadr	0x10
-	WORD	main_st[5]
-	WORD	button_counter
+	// so far:
+	// application code can use 1 word of stack
+	// rx ISR can do up to 3
+	// total: 4
+	WORD	main_st[4]
 
-	.ramadr	0x20
-	byte 	packet_buffer[buffer_size+1] // needs one more byte for "the rest of the packet"
+	BYTE    tx_buffer[8] // packet header + up to 4 bytes of payload
+
+	BYTE 	packet_buffer[buffer_size+1] // needs one more byte for "the rest of the packet"
 
 	goto	main
 

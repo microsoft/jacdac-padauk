@@ -1,6 +1,6 @@
 IDSIZE equ 8
 
-fill_id:
+.fill_id MACRO
 	a = packet_buffer+4+IDSIZE-1
 	mov lb@memidx, a
 	.mova tmp0, IDSIZE
@@ -12,6 +12,7 @@ fill_id:
 	dzsn tmp0
 	goto @B
 	ret
+ENDM
 
 .check_id MACRO fail_lbl
 	a = packet_buffer+4+IDSIZE-1

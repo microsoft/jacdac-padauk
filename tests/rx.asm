@@ -14,14 +14,14 @@ interrupt:
 	goto timeout
 	t0sn PA.JD_D
 	reti
-		
+
 	pushaf
 
 	set1 flags.f_in_rx
 	$ TM2S 8BIT, /1, /14 // ~140us
 	.mova TM2CT, 0
 	engint
-	
+
 	// wait for end of lo pulse
 @@:
 	t1sn PA.JD_D
