@@ -44,6 +44,8 @@ crc_size equ 2
 	BYTE	rx_data, tmp0, tmp1, tmp2
 	BYTE	crc_l, crc_h, crc_d, crc_l0, crc_h0
 
+	BYTE freq1
+
 	// .ramadr	0x10
 	WORD	main_st[5]
 	WORD	button_counter
@@ -62,7 +64,7 @@ main:
 	SP	=	main_st
 
 	.clear_memory
-	call rng_init
+	.rng_init
 	.t16_init
 	.rx_init
 
@@ -71,8 +73,6 @@ pin_init:
 	PAC.JD_TM 	= 	1 ; output
 
 	engint
-
-	BYTE freq1
 
 loop:
 	call t16_sync

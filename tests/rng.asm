@@ -3,7 +3,7 @@
 	// we init a==0
 	// the only init with a==0 that results in 127-cycle is 63,45,24,0
 	// we also avoid 0,0,0,0
-rng_init:
+.rng_init MACRO
 	call _rng_hw_byte
 	cneqsn a, 63
 	add a, 1
@@ -15,7 +15,7 @@ rng_init:
 	call _rng_hw_byte
 	mov rng_z, a
 	clear rng_a
-	ret
+ENDM
 
 _rng_hw_byte:
 	$ TM2S 8BIT, /1, /1
