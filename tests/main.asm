@@ -49,14 +49,66 @@ JD_D 	equ	7
 
 	.romadr	0x10            // interrupt vector
 interrupt:
-	//pushaf
-
 	INTRQ.TM2 = 0
+	t0sn PA.JD_D
+	reti
+	
+	pushaf
+
 	PA.JD_TM = 1
 	PA.JD_TM = 0
 
-	//popaf
+	// wait for end of lo pulse
+@@:
+	t1sn PA.JD_D
+	goto @b
+
+	// wait for serial transmission to start
+@@:
+.repeat 40
+	t1sn PA.JD_D
+	goto uart_rx_lo
+.endm
+	goto @b
+
+
+.get_bit MACRO n	
+	nop
+	PA.JD_LED = 1
+	nop
+	t0sn PA.JD_D
+	set1 uart_data.n
+	PA.JD_LED = 0
+	nop
+	nop
+ENDM
+
+uart_rx:
+	PA.JD_TM = 1
+.repeat 80 // 80 repetitions = 20us - max wait time
+	t1sn PA.JD_D
+	goto uart_rx_lo
+.endm
+	popaf
 	reti
+
+uart_rx_lo:
+	// potentially, can add one more cycle here - measure it?
+	PA.JD_TM = 0
+	nop
+	nop
+
+	.forc n, <01234567>
+	.get_bit n
+	.endm
+
+	nop
+	nop
+	nop
+	nop
+	nop
+	goto uart_rx
+	ret
 
 
 main:
@@ -80,36 +132,6 @@ pin_init:
 
 	engint
 
-	call fill_id
-	nop
-	nop
-	clear packet_buffer[4+3]
-	nop
-	call check_id
-	nop
-	nop
-	.ldbytes packet_buffer, <0xde, 0xad, 0xf0, 0x0d>
-
-xloop:
-	//disgint
-	a = packet_buffer
-	mov lb@memidx, a
-	mov a, 4
-	PA.JD_LED = 1
-	call crc16
-	PA.JD_LED = 0
-
-	a = packet_buffer
-	mov lb@memidx, a
-	mov a, 20
-	PA.JD_LED = 1
-	call crc16
-	PA.JD_LED = 0
-	goto xloop
-
-
-
-
 	BYTE freq1
 
 loop:
@@ -119,8 +141,6 @@ loop:
 
 freq1_hit:
 	.t16_set t16_1ms, freq1, 10
-	PA.JD_LED = 1
-	PA.JD_LED = 0
  	ret
 
 // Module implementations
@@ -130,80 +150,3 @@ freq1_hit:
 .include devid.asm
 .include rng.asm
 
-uart_rx:
-.repeat 10
-	t1sn PA.JD_D
-	goto uart_rx_lo
-.endm
-uart_rx_lo:
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.0
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.1
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.2
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.3
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.4
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.5
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.6
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	t0sn PA.JD_D
-	set1 uart_data.7
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	goto uart_rx
