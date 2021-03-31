@@ -17,7 +17,6 @@ crc_size equ 2
 #define JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS 3
 #define JD_FRAME_FLAG_VNEXT 7
 
-
 .include utils.asm
 .include t16.asm
 
@@ -42,7 +41,7 @@ crc_size equ 2
 	.ramadr 0x00
 	WORD    memidx
 	BYTE    flags
-	BYTE	uart_data, tmp0, tmp1, tmp2
+	BYTE	rx_data, tmp0, tmp1, tmp2
 	BYTE	crc_l, crc_h, crc_d, crc_l0, crc_h0
 
 	// .ramadr	0x10
@@ -65,13 +64,7 @@ main:
 	.clear_memory
 	call rng_init
 	.t16_init
-
-t2_init:
-	$ TM2S 8BIT, /1, /1
-	TM2B = 75 ; irq every 75 instructions, ~9.5us
-	$ TM2C SYSCLK
-	INTRQ = 0x00
-	$ INTEN = TM2
+	.rx_init
 
 pin_init:
 	PAC.JD_LED 	= 	1 ; output

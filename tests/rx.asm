@@ -1,3 +1,11 @@
+.rx_init MACRO
+	$ TM2S 8BIT, /1, /1
+	TM2B = 75 ; irq every 75 instructions, ~9.5us
+	$ TM2C SYSCLK
+	INTRQ = 0x00
+	$ INTEN = TM2
+ENDM
+
 
 	.romadr	0x10            // interrupt vector
 interrupt:
@@ -22,7 +30,7 @@ interrupt:
 	a = packet_buffer
 	mov lb@memidx, a
 	.mova tmp0, buffer_size+1
-	clear uart_data
+	clear rx_data
 	.mova tmp2, -crc_size-1
 
 	mov a, 0xff
@@ -33,36 +41,36 @@ interrupt:
 @@:
 .repeat 20
 	t1sn PA.JD_D
-	goto uart_rx_lo_first
+	goto rx_lo_first
 .endm
 	goto @b
 
     .include devid.asm
 
-uart_rx_lo_first:
+rx_lo_first:
 	$ TM2S 8BIT, /1, /3	 // 2T
 	nop
 	nop
-	goto uart_rx_lo_skip // 2T
+	goto rx_lo_skip // 2T
 
-uart_rx:
+rx_byte:
 .repeat 10
 	t1sn PA.JD_D
-	goto uart_rx_lo
+	goto rx_lo
 .endm
-	goto uart_rx
+	goto rx_byte
 
-uart_rx_lo:
-	xch uart_data    // a==0 here, so this clears uart_data for next round
+rx_lo:
+	xch rx_data    // a==0 here, so this clears rx_data for next round
 	idxm memidx, a   // 2T
 	dzsn tmp0        // tmp0--
 	inc lb@memidx    // when tmp0 reaches 0, we stop incrementing memidx
 	t0sn ZF          // if tmp0==0
 	inc tmp0         //     tmp0++ -> keep tmp0 at 0
 
-uart_rx_lo_skip:
+rx_lo_skip:
 		t0sn PA.JD_D
-		set1 uart_data.0
+		set1 rx_data.0
 
 	// uint8_t x = (crc >> 8) ^ data;
 	mov a, crc_d
@@ -74,7 +82,7 @@ uart_rx_lo_skip:
 	xor tmp1, a // tmp1==x	
 
 		t0sn PA.JD_D
-		set1 uart_data.1
+		set1 rx_data.1
 
 	// crc = (crc << 8) ^ (x << 12) ^ (x << 5) ^ x; =>
 	// crc_h = crc_l ^ (x << 4) ^ (x >> 3)
@@ -86,7 +94,7 @@ uart_rx_lo_skip:
 	mov a, tmp1
 
 		t0sn PA.JD_D
-		set1 uart_data.2
+		set1 rx_data.2
 
 	sr a
 	sr a
@@ -96,7 +104,7 @@ uart_rx_lo_skip:
 	nop
 
 		t0sn PA.JD_D
-		set1 uart_data.3
+		set1 rx_data.3
 
 	// crc_l = (x << 5) ^ x
 	mov a, tmp1
@@ -107,7 +115,7 @@ uart_rx_lo_skip:
 	xor crc_l0, a
 
 		t0sn PA.JD_D
-		set1 uart_data.4
+		set1 rx_data.4
 
 	// check if we're in CRC range - after first two bytes of stored crc, and before the end of the whole packet
 	mov a, packet_buffer[2]
@@ -120,7 +128,7 @@ uart_rx_lo_skip:
 	mov crc_l, a
 
 		t0sn PA.JD_D
-		set1 uart_data.5
+		set1 rx_data.5
 
 	// if in CRC range, store into crc_h
 	mov a, crc_h0
@@ -132,7 +140,7 @@ uart_rx_lo_skip:
 	nop
 	
 		t0sn PA.JD_D
-		set1 uart_data.6
+		set1 rx_data.6
 
 	nop
 	nop
@@ -142,11 +150,11 @@ uart_rx_lo_skip:
 		PA.JD_LED = 1 // bit marking
 		nop
 		t0sn PA.JD_D
-		set1 uart_data.7 // 9T excluding goto uart_rx
+		set1 rx_data.7 // 9T excluding goto rx_byte
 		PA.JD_LED = 0 // bit marking
 
 	inc tmp2
-	mov a, uart_data
+	mov a, rx_data
 	mov crc_d, a
 
 	nop
@@ -155,7 +163,7 @@ uart_rx_lo_skip:
 
 	mov a, 0
 	mov TM2CT, a
-	goto uart_rx
+	goto rx_byte
 
 
 timeout:
@@ -165,10 +173,6 @@ timeout:
 	sub a, 2
 	mov SP, a
 leave_irq:
-	mov a, packet_buffer[2]
-	sub a, buffer_size-frame_header_size+1
-	t1sn CF
-	goto pkt_error	
 	mov a, crc_l
 	ceqsn a, packet_buffer[0]
 	goto pkt_error
@@ -183,6 +187,11 @@ leave_irq:
 	goto pkt_error
 
     .check_id not_interested
+
+	mov a, packet_buffer[2]
+	sub a, buffer_size-frame_header_size+1
+	t1sn CF
+	goto pkt_error // it was a packet for us, but it was too large
 
 // JD_FRAME_FLAG_ACK_REQUESTED
 // JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
