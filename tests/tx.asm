@@ -2,6 +2,8 @@
 #define tx_data tmp1
 #define tx_cntdown tmp2
 
+// TODO we actually need to send up to 8 bytes (control announce), not up to 4
+
 try_tx:
 	disgint
 	t1sn PA.JD_D
@@ -43,6 +45,7 @@ try_tx:
 @@:
 	dzsn a
 	goto @b
+	// need around 400 cycles delay until first start bit
 
 	clear tx_idx
 	mov a, 12
@@ -82,9 +85,9 @@ tx_hd:
 	mov a, tx_idx
 	add a, tx_addr
 	mov lb@memidx, a
-	idxm a, lb@memidx
+	idxm a, memidx
 	// -- 9
-	goto tx_hdid
+	goto tx_hd_id
 
 tx_id:
 	mov a, tx_idx
@@ -98,3 +101,8 @@ tx_hd_id:
 	PA.JD_D = 0
 	mov tx_data, a
 	goto _nextbit
+
+tx_last:
+	// TODO brk
+	engint
+	ret

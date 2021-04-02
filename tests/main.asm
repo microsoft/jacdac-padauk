@@ -61,7 +61,7 @@ tx_addr equ 0x10
 	BYTE	tx_service_number
 	BYTE	tx_service_command_l
 	BYTE	tx_service_command_h
-	BYTE	tx_data[4]
+	BYTE	tx_payload[8]
 
 	BYTE 	packet_buffer[buffer_size+1] // needs one more byte for "the rest of the packet"
 
@@ -76,6 +76,7 @@ tx_addr equ 0x10
 	.include rx.asm
 	.include crc16.asm
 	.include rng.asm
+	.include tx.asm
 
 main:
 	.ADJUST_IC	SYSCLK=IHRC/2, IHRC=16MHz, VDD=3.85V
