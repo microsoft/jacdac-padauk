@@ -34,7 +34,7 @@ ENDM
 get_id:
 	pcadd a
 .IFDEF RELEASE
-	.User_Roll 8 BYTE, "genid.bat", "ids.txt"
+	.User_Roll 12 BYTE, "genid.bat", "ids.txt"
 .ELSE
 	ret 0x01
 	ret 0x23
@@ -44,4 +44,11 @@ get_id:
 	ret 0xab
 	ret 0xcd
 	ret 0xef
+
+	// note that these two CRCs always differ by XOR 0xe77e regardless of device id
+	// this can possibly be used in future to only store one of them
+	ret 0x16 // crc of 0400 0123456780abcdef
+	ret 0x2e
+	ret 0xf1 // crc of 0800 0123456780abcdef
+	ret 0x50
 .ENDIF

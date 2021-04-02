@@ -17,24 +17,20 @@ function show(b) {
     return x
 }
 function disp(a, b) {
-    const buf0 = Buffer.from(a, "hex")
-    const buf1 = Buffer.from(b, "hex")
+    const buf0 = Buffer.from(a.replace(/ /g, ""), "hex")
+    const buf1 = Buffer.from(b.replace(/ /g, ""), "hex")
     const buf2 = Buffer.from(buf0)
-    for (let i = 0; i < buf1.length; ++i)
-        buf2[i] ^= buf1[i]
+//    for (let i = 0; i < buf1.length; ++i)
+//        buf2[i] ^= buf1[i]
 
     const x = show(buf0)
     const y = show(buf1)
-    const z = show(buf2)
-    console.log((x ^ z).toString(16))
+//    const z = show(buf2)
+    console.log((x ^ y).toString(16))
 }
 
-disp(
-    "DEADF00D",
-    "04000000"
-)
 
 disp(
-    "9988aabb",
-    "04000000"
+    "04 00 01 23 45 67 80 ab cd ef",
+    "08 00 01 23 45 67 80 ab cd ef"
 )

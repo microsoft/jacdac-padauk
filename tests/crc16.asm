@@ -14,11 +14,13 @@ uint16_t jd_crc16(const void *data, uint32_t size) {
 
 
 // ~27 cycles per byte
+/*
 crc16:
 	mov tmp0, a // length
 	mov a, 0xff
 	mov crc_l, a
 	mov crc_h, a
+*/
 crc16_loop:
 	// uint8_t data = *ptr++;
 	idxm a, memidx
