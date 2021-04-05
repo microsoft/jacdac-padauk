@@ -107,6 +107,7 @@ tx_last:
 	.delay 90
 	PA.JD_D = 1
 	PAC.JD_D = 0 // set to input
+	PAPH.JD_D = 1
 	set1 flags.f_set_tx
 	engint
 	goto loop

@@ -49,7 +49,7 @@ tx_addr equ 0x10
 
 	// 8 bytes here; will be masked with get_id
 	BYTE	tmp0, tmp1
-	BYTE	crc_h0, rx_data
+	BYTE	crc_d, rx_data
 	BYTE	isr1, isr2
 	BYTE    t_announce, t_tx
 
@@ -87,6 +87,9 @@ main:
 pin_init:
 	PAC.JD_LED 	= 	1 ; output
 	PAC.JD_TM 	= 	1 ; output
+
+	call t16_sync
+	.t16_set t16_262ms, t_announce, 2
 
 	engint
 
