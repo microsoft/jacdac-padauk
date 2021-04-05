@@ -14,6 +14,7 @@
 	$ INTEN = TM2
 ENDM
 
+	// TODO we have about 14 instructions free here
 
 	.romadr	0x10            // interrupt vector
 interrupt:

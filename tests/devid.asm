@@ -51,5 +51,6 @@ get_id:
 	ret 0x2e
 	ret 0xf1 // crc of 0800 0123456780abcdef
 	ret 0x50
-	// TODO 0c000...
+	ret 0x65 // crc of 0c00 ...
+	ret 0x5c
 .ENDIF

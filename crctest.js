@@ -32,5 +32,5 @@ function disp(a, b) {
 
 disp(
     "04 00 01 23 45 67 80 ab cd ef",
-    "08 00 01 23 45 67 80 ab cd ef"
+    "0c 00 01 23 45 67 80 ab cd ef"
 )
