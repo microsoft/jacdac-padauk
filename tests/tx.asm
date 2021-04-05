@@ -78,6 +78,7 @@ _stop:
 	pcadd a
 	goto tx_hd
 	goto tx_id
+	goto tx_id
 	goto tx_hd
 	goto tx_hd
 
@@ -97,9 +98,13 @@ tx_id:
 tx_hd_id:
 	inc tx_idx
 	dzsn tx_cntdown
+	goto tx_not_last
 	goto tx_last
-	PA.JD_D = 0
+
+tx_not_last:
 	mov tx_data, a
+	PA.JD_D = 0
+	mov a, 8
 	goto _nextbit
 
 tx_last:
