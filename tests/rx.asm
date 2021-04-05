@@ -185,6 +185,7 @@ timeout:
 	sub a, 2
 	mov SP, a
 leave_irq:
+	call t16_sync
 	mov a, crc_l
 	ceqsn a, packet_buffer[0]
 	goto pkt_error
@@ -205,6 +206,9 @@ leave_irq:
 	t1sn CF
 	goto pkt_error // it was a packet for us, but it was too large
 
+
+.include rxctrl.asm
+
 	t1sn isr0.JD_FRAME_FLAG_ACK_REQUESTED
 	goto no_ack_needed
 	set1 flags.f_want_ack
@@ -224,6 +228,8 @@ _do_leave:
 	popaf
 	reti
 
+pkt_overflow:
+pkt_invalid:
 pkt_error:
 	PA.JD_TM = 1
 	PA.JD_TM = 0

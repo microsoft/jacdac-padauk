@@ -10,6 +10,8 @@ f_in_rx equ 0
 f_has_tx equ 1
 f_set_tx equ 2
 f_want_ack equ 3
+f_identify equ 4
+f_reset_in equ 5
 
 tx_addr equ 0x10
 
@@ -46,6 +48,7 @@ tx_addr equ 0x10
 	BYTE    reset_cnt
 
 	BYTE    ack_crc_l, ack_crc_h
+	BYTE    t_reset
 
 	.ramadr tx_addr
 	BYTE	crc_l, crc_h
@@ -72,6 +75,9 @@ tx_addr equ 0x10
 	// rx ISR can do up to 3
 	// total: 4
 	WORD	main_st[4]
+
+	WORD    t16_low
+	WORD    t16_high
 
 	goto	main
 
@@ -101,6 +107,11 @@ pin_init:
 loop:
 	call t16_sync
 
+	t1sn flags.f_reset_in
+	goto skip_reset_in
+	.t16_chk t16_262ms, t_reset, reset
+skip_reset_in:
+
 	t1sn flags.f_set_tx
 	goto skip_schedule_tx
 	set0 flags.f_set_tx
@@ -114,7 +125,7 @@ loop:
 skip_schedule_tx:
 	t1sn flags.f_has_tx
 	goto no_tx
-	.t16_chk t16_4us, t_tx, try_tx
+	.t16_chk t16_4us, t_tx, <goto try_tx>
 	goto loop // if tx is full, no point trying announce etc
 
 no_tx:
@@ -129,7 +140,7 @@ no_tx:
 	goto loop
 
 no_ack_req:
-	.t16_chk t16_262ms, t_announce, do_announce
+	.t16_chk t16_262ms, t_announce, <goto do_announce>
 	goto loop
 
 do_announce:

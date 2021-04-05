@@ -8,7 +8,7 @@
 	sub a, tim
 	and a, 0x80
 	cneqsn a, 0x00
-	goto handler
+	handler
 ENDM
 
 .t16_set MACRO t16_v, tim, num
@@ -18,8 +18,6 @@ ENDM
 ENDM
 
 .t16_init MACRO
-	WORD    t16_low
-	WORD    t16_high
 t16_init_:
 	stt16 t16_low
 	$ INTEGS BIT_F ; falling edge on T16
