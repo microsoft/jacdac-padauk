@@ -3,13 +3,13 @@ IDSIZE equ 8
 .fill_id MACRO
 	a = packet_buffer+4+IDSIZE-1
 	mov lb@memidx, a
-	.mova tmp0, IDSIZE
+	.mova isr0, IDSIZE
 @@:
-	mov a, tmp0
+	mov a, isr0
 	call get_id
 	idxm memidx, a
 	dec lb@memidx
-	dzsn tmp0
+	dzsn isr0
 	goto @B
 	ret
 ENDM
@@ -17,16 +17,16 @@ ENDM
 .check_id MACRO fail_lbl
 	a = packet_buffer+4+IDSIZE-1
 	mov lb@memidx, a
-	.mova tmp0, IDSIZE
+	.mova isr0, IDSIZE
 @@:
-	mov a, tmp0
+	mov a, isr0
 	call get_id
-	mov tmp1, a
+	mov isr1, a
 	idxm a, memidx
-	ceqsn a, tmp1
+	ceqsn a, isr1
 	goto fail_lbl
 	dec lb@memidx
-	dzsn tmp0
+	dzsn isr0
 	goto @B
 ENDM
 
@@ -51,4 +51,5 @@ get_id:
 	ret 0x2e
 	ret 0xf1 // crc of 0800 0123456780abcdef
 	ret 0x50
+	// TODO 0c000...
 .ENDIF

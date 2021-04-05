@@ -1,13 +1,9 @@
-/*
-Brilliant ideas:
-- 'addpc mode' statement at the beginning of irq
- */
-
 JD_LED	equ	6
 JD_TM 	equ	4
 JD_D 	equ	7
 f_in_rx equ 0
 f_has_tx equ 1
+f_set_tx equ 2
 buffer_size equ 20
 frame_header_size equ 12
 crc_size equ 2
@@ -43,18 +39,19 @@ tx_addr equ 0x10
 	.ramadr 0x00
 	WORD    memidx
 	BYTE    flags
-	BYTE	tmp0
-
-	BYTE freq1
+	BYTE	isr0
+	BYTE    reset_cnt
 
 	.ramadr tx_addr
 	BYTE	crc_l, crc_h
-	BYTE	frm_sz, frm_flags
+	BYTE	frm_sz  // == crc_l0
+	BYTE    frm_flags // == crc_h0
 
 	// 8 bytes here; will be masked with get_id
-	BYTE	crc_d, crc_l0, crc_h0, rx_data
-	BYTE	tmp1, tmp2
-	BYTE    devcrc_l, devcrc_h
+	BYTE	tmp0, tmp1
+	BYTE	crc_h0, rx_data
+	BYTE	isr1, isr2
+	BYTE    t_announce, t_tx
 
 	// actual tx packet
 	BYTE	tx_size
@@ -95,14 +92,48 @@ pin_init:
 
 loop:
 	call t16_sync
-	.t16_chk t16_1ms, freq1, freq1_hit
+
+	t1sn flags.f_set_tx
+	goto skip_schedule_tx
+	set0 flags.f_set_tx
+	call rng_next // uses tmp0
+	and a, 31
+	add a, 12
+	mov t_tx, a
+	mov a, t16_4us
+	add t_tx, a
+
+skip_schedule_tx:
+	t1sn flags.f_has_tx
+	goto no_tx
+	.t16_chk t16_4us, t_tx, try_tx
+	goto loop // if tx is full, no point trying announce etc
+
+no_tx:
+	.t16_chk t16_262ms, t_announce, do_announce
 	goto loop
 
-freq1_hit:
-	//PA.JD_TM = 1
-	//PA.JD_TM = 0
-	.t16_set t16_1ms, freq1, 10
- 	ret
+do_announce:
+	.t16_set t16_262ms, t_announce, 2
+	set1 flags.f_has_tx
+	// reset_cnt maxes out at 0xf	
+	mov a, 0xf
+	inc reset_cnt
+	t0sn reset_cnt.4
+	mov reset_cnt, a
+	.mova tx_payload[0], reset_cnt
+	.mova tx_payload[1], 0x01 // ACK-supported
+	clear tx_payload[2] // here we could insert packet_cnt, but we don't track that yet
+	clear tx_payload[3]
+	.mova tx_payload[4], 0x63
+	.mova tx_payload[5], 0xa2
+	.mova tx_payload[6], 0x73
+	.mova tx_payload[7], 0x14
+	.mova tx_size, 8
+	clear tx_service_number
+	clear tx_service_command_l
+	clear tx_service_command_h
+	goto loop
 
 // Module implementations
 	.t16_impl

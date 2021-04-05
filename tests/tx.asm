@@ -1,8 +1,6 @@
-#define tx_idx tmp0
-#define tx_data tmp1
-#define tx_cntdown tmp2
-
-// TODO we actually need to send up to 8 bytes (control announce), not up to 4
+#define tx_idx isr0
+#define tx_data isr1
+#define tx_cntdown isr2
 
 try_tx:
 	disgint
@@ -13,34 +11,36 @@ try_tx:
 
 	// frm_sz fixed to either 4 or 8 (0 or up to 4 bytes of payload)
 	mov a, tx_size
-	mov a, 4
-	t1sn ZF // ZF set by a:=tx_size
-	mov a, 8 // if tx_size!=0 a:=8
-	mov frm_sz, a
-	sr a // a=2 || a=4
+	add a, 3+4
+	and a, 0b1111_1100
+	mov frm_sz, a // frm_sz == 4 || 8 || 12
+	sr a
 	add a, 7
+	mov isr0, a
 	call get_id
 	mov crc_l, a
-	mov a, frm_sz
-	sr a // a=2 || a=4
-	add a, 8
+	mov a, isr0
+	add a, 1
 	call get_id
 	mov crc_h, a
-	// -- 24 cycles
+	
+	clear frm_flags
 
-	.mova lb@memidx, tx_addr+12
-	.mova tmp0, frm_sz
-
-	.delay 90-28
+	.delay 90-20
 
 	PA.JD_D = 1
 
-	call crc16_loop // ~108 cycles for tx_size==0, ~216 otherwise
+	// ~27 cycles per byte
+	.mova lb@memidx, tx_addr+12
+	.mova crc_len, frm_sz
+	call crc16_loop // uses isr0, isr1
+	mov a, frm_sz
+	sl a
+	sl a
+	sl a
+	neg a // frm_sz*8 3cycles =~ 24 cycles per byte (less than 27 but ...)
+	add a, 133 // 133 3cycles = 400 cycles
 
-	mov a, tx_size
-	mov a, 100
-	t1sn ZF
-	mov a, 67 // if tx_size!=0 a:=67
 	// delay is 3*a cycles
 @@:
 	dzsn a
@@ -103,6 +103,10 @@ tx_hd_id:
 	goto _nextbit
 
 tx_last:
-	// TODO brk
+	PA.JD_D = 0 // set lo
+	.delay 90
+	PA.JD_D = 1
+	PAC.JD_D = 0 // set to input
+	set1 flags.f_set_tx
 	engint
-	ret
+	goto loop
