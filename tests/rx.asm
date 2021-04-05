@@ -205,7 +205,14 @@ leave_irq:
 	t1sn CF
 	goto pkt_error // it was a packet for us, but it was too large
 
-// JD_FRAME_FLAG_ACK_REQUESTED
+	t1sn isr0.JD_FRAME_FLAG_ACK_REQUESTED
+	goto no_ack_needed
+	set1 flags.f_want_ack
+	.mova ack_crc_l, crc_l
+	.mova ack_crc_h, crc_h
+
+no_ack_needed:
+
 // JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
 
 not_interested:

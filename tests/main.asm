@@ -1,12 +1,15 @@
 JD_LED	equ	6
 JD_TM 	equ	4
 JD_D 	equ	7
-f_in_rx equ 0
-f_has_tx equ 1
-f_set_tx equ 2
+
 buffer_size equ 20
 frame_header_size equ 12
 crc_size equ 2
+
+f_in_rx equ 0
+f_has_tx equ 1
+f_set_tx equ 2
+f_want_ack equ 3
 
 tx_addr equ 0x10
 
@@ -41,6 +44,8 @@ tx_addr equ 0x10
 	BYTE    flags
 	BYTE	isr0
 	BYTE    reset_cnt
+
+	BYTE    ack_crc_l, ack_crc_h
 
 	.ramadr tx_addr
 	BYTE	crc_l, crc_h
@@ -113,6 +118,17 @@ skip_schedule_tx:
 	goto loop // if tx is full, no point trying announce etc
 
 no_tx:
+	t1sn flags.f_want_ack
+	goto no_ack_req
+	set0 flags.f_want_ack
+	set1 flags.f_has_tx
+	clear tx_size
+	.mova tx_service_number, 0x3f
+	.mova tx_service_command_l, ack_crc_l
+	.mova tx_service_command_h, ack_crc_h
+	goto loop
+
+no_ack_req:
 	.t16_chk t16_262ms, t_announce, do_announce
 	goto loop
 
