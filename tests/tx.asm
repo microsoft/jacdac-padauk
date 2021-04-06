@@ -9,9 +9,14 @@ try_tx:
 	PA.JD_D = 0 // set lo
 	PAC.JD_D = 1 // set to output
 
-	// frm_sz fixed to either 4 or 8 (0 or up to 4 bytes of payload)
-	mov a, tx_size
-	add a, 3+4
+	.delay 90
+
+	PA.JD_D = 1
+
+	call prep_tx // ~20-~50 cycles
+
+	mov a, pkt_size
+	add a, 3+4 // add pkt-header size + round up to word
 	and a, 0b1111_1100
 	mov frm_sz, a // frm_sz == 4 || 8 || 12
 	sr a
@@ -23,29 +28,12 @@ try_tx:
 	add a, 1
 	call get_id
 	mov crc_h, a
-	
-	clear frm_flags
 
-	.delay 90-20
-
-	PA.JD_D = 1
-
-	// ~27 cycles per byte
-	.mova memidx$0, tx_addr+12
+	.mova memidx$0, pkt_addr+12
 	.mova crc_len, frm_sz
 	call crc16_loop // uses isr0, isr1
-	mov a, frm_sz
-	sl a
-	sl a
-	sl a
-	neg a // frm_sz*8 3cycles =~ 24 cycles per byte (less than 27 but ...)
-	add a, 133 // 133 3cycles = 400 cycles
 
-	// delay is 3*a cycles
-@@:
-	dzsn a
-	goto @b
-	// need around 400 cycles delay until first start bit
+	.delay 150 // TODO - use t16 to wait the right amount always
 
 	clear tx_idx
 	mov a, 12
@@ -84,7 +72,7 @@ _stop:
 
 tx_hd:
 	mov a, tx_idx
-	add a, tx_addr
+	add a, pkt_addr
 	mov memidx$0, a
 	idxm a, memidx
 	// -- 9
@@ -114,6 +102,5 @@ tx_last:
 	PAC.JD_D = 0 // set to input
 	PAPH.JD_D = 1
 	set1 flags.f_set_tx
-	set0 flags.f_has_tx
 	engint
 	goto loop

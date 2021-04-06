@@ -1,12 +1,3 @@
-#define rx_size packet_buffer[12]
-#define rx_service_num packet_buffer[13]
-#define rx_cmd_l packet_buffer[14]
-#define rx_cmd_h packet_buffer[15]
-#define rx_data_0 packet_buffer[16]
-#define rx_data_1 packet_buffer[17]
-#define rx_data_2 packet_buffer[18]
-#define rx_data_3 packet_buffer[19]
-
 #define JD_HIGH_CMD 0x00
 #define JD_HIGH_REG_RW_SET 0x20
 #define JD_HIGH_REG_RW_GET 0x10
@@ -18,13 +9,13 @@
 
 #define JD_CONTROL_REG_RW_RESET_IN 0x80
 
-	mov a, rx_service_num
+	mov a, pkt_service_number
 	ifneq a, 0
 		goto not_ctrl
-	mov a, rx_cmd_h
+	mov a, pkt_service_command_h
 
 	if (a == JD_HIGH_CMD) {
-		mov a, rx_cmd_l
+		mov a, pkt_service_command_l
 
 		if (a == JD_CONTROL_CMD_RESET) {
 			reset
@@ -37,14 +28,14 @@
 	}
 
 	if (a == JD_HIGH_REG_RW_SET) {
-		mov a, rx_cmd_l
+		mov a, pkt_service_command_l
 
 		if (a == JD_CONTROL_REG_RW_RESET_IN) {
 			set0 flags.f_reset_in // first disable reset-in
-			mov a, rx_data_3
+			mov a, pkt_payload[3]
 			ifneq a, 0
 				goto pkt_invalid // they ask us to wait too long
-			mov a, rx_data_2
+			mov a, pkt_payload[2]
 			sr a
 			sr a
 			ifset ZF

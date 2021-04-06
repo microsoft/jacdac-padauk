@@ -2,9 +2,6 @@
 #define rx_crc_range isr2
 #define rx_crc_tmp isr1
 
-#define crc_l0 frm_sz
-#define crc_h0 frm_flags
-
 .rx_init MACRO
 	PAPH.JD_D = 1
 	$ TM2S 8BIT, /1, /1
@@ -39,15 +36,14 @@ interrupt:
 	ifclear PA.JD_D
 	  goto @b
 
-	a = packet_buffer
-	mov memidx$0, a
+	.mova memidx$0, pkt_addr
 	.mova rx_buflimit, buffer_size+1
 	clear rx_data
 	.mova rx_crc_range, -crc_size-1
 
 	mov a, 0xff
-	mov crc_l, a
-	mov crc_h, a
+	mov crc_l1, a
+	mov crc_h1, a
 
 	// wait for serial transmission to start
 rx_retry_wait:
@@ -86,7 +82,7 @@ rx_lo_skip:
 
 	// uint8_t x = (crc >> 8) ^ data;
 	mov a, crc_d
-	xor a, crc_h
+	xor a, crc_h1
 	mov rx_crc_tmp, a
 	// x ^= x >> 4;
 	swap a
@@ -101,7 +97,7 @@ rx_lo_skip:
 	mov a, rx_crc_tmp
 	swap a
 	and a, 0xf0
-	xor a, crc_l
+	xor a, crc_l1
 	mov crc_h0, a
 	mov a, rx_crc_tmp
 
@@ -130,14 +126,14 @@ rx_lo_skip:
 		  set1 rx_data.4
 
 	// check if we're in CRC range - after first two bytes of stored crc, and before the end of the whole packet
-	mov a, packet_buffer[2]
+	mov a, frm_sz
 	add a, frame_header_size-crc_size-1
 	sub a, rx_crc_range
 
 	// if in CRC range, store into crc_l
 	mov a, crc_l0
 	ifclear CF
-	  mov crc_l, a
+	  mov crc_l1, a
 
 		ifset PA.JD_D
 		  set1 rx_data.5
@@ -145,7 +141,7 @@ rx_lo_skip:
 	// if in CRC range, store into crc_h
 	mov a, crc_h0
 	ifclear CF
-	  mov crc_h, a
+	  mov crc_h1, a
 
 	nop
 	nop
@@ -187,13 +183,13 @@ timeout:
 leave_irq:
 	call t16_sync
 	mov a, crc_l
-	ifneq a, packet_buffer[0]
+	ifneq a, crc_l1
 	  goto pkt_error
 	mov a, crc_h
-	ifneq a, packet_buffer[1]
+	ifneq a, crc_h1
 	  goto pkt_error
 
-	.mova isr0, packet_buffer[3]
+	.mova isr0, frm_flags
 	ifclear isr0.JD_FRAME_FLAG_COMMAND
 	  goto not_interested // this is a report
 	ifset isr0.JD_FRAME_FLAG_VNEXT
@@ -201,7 +197,7 @@ leave_irq:
 
     .check_id not_interested // uses isr0, isr1
 
-	mov a, packet_buffer[2]
+	mov a, frm_sz
 	sub a, buffer_size-frame_header_size+1
 	ifclear CF
 	  goto pkt_error // it was a packet for us, but it was too large
@@ -211,7 +207,7 @@ leave_irq:
 
 	ifclear isr0.JD_FRAME_FLAG_ACK_REQUESTED
 	  goto no_ack_needed
-	set1 flags.f_want_ack
+	set1 tx_pending.txp_ack
 	.mova ack_crc_l, crc_l
 	.mova ack_crc_h, crc_h
 
