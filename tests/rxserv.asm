@@ -12,21 +12,21 @@
 
 	mov a, rx_cmd_h
 
-	ceqsn a, JD_HIGH_REG_RW_SET
-	goto not_serv_reg_set
+	ifneq a, JD_HIGH_REG_RW_SET
+	  goto not_serv_reg_set
 
 	mov a, rx_cmd_l
 
-	ceqsn a, JD_REG_RW_STREAMING_SAMPLES
-	goto @f
+	ifneq a, JD_REG_RW_STREAMING_SAMPLES
+	  goto @f
 	.mova streaming_samples, rx_data_0
 	goto rx_process_end
 @@:
-	ceqsn a, JD_REG_RW_STREAMING_INTERVAL
-	goto not_streaming_int
+	ifneq a, JD_REG_RW_STREAMING_INTERVAL
+	  goto not_streaming_int
 	mov a, rx_data_1
-	ceqsn a, 0
-	goto streaming_int_ovf
+	ifneq a, 0
+	  goto streaming_int_ovf
 	mov a, rx_data_0
 	sl a
 	ifset CF
@@ -48,19 +48,19 @@ not_streaming_int:
 not_serv_reg_set:
 	ifset flags.f_has_tx
 	  goto pkt_overflow
-	ceqsn a, JD_HIGH_REG_RW_GET
-	goto not_serv_reg_rw_get
+	ifneq a, JD_HIGH_REG_RW_GET
+	  goto not_serv_reg_rw_get
 	mov a, rx_cmd_l
 
-	ceqsn a, JD_REG_RW_STREAMING_SAMPLES
-	goto @f
+	ifneq a, JD_REG_RW_STREAMING_SAMPLES
+	  goto @f
 	.mova tx_payload[0], streaming_samples
 	.mova tx_size, 1
 	goto prep_answer
 @@:
 
-	ceqsn a, JD_REG_RW_STREAMING_INTERVAL
-	goto @f
+	ifneq a, JD_REG_RW_STREAMING_INTERVAL
+	  goto @f
 	.mova tx_payload[0], streaming_interval
 	clear tx_payload[1]
 	clear tx_payload[2]
@@ -72,12 +72,12 @@ not_serv_reg_set:
 	goto rx_process_end
 
 not_serv_reg_rw_get:
-	ceqsn a, JD_HIGH_REG_RO_GET
-	goto not_serv_reg_ro_get
+	ifneq a, JD_HIGH_REG_RO_GET
+	  goto not_serv_reg_ro_get
 	mov a, rx_cmd_l
 
-	ceqsn a, JD_REG_RO_READING
-	goto @f
+	ifneq a, JD_REG_RO_READING
+	  goto @f
 	call send_reading
 	goto rx_process_end
 @@:

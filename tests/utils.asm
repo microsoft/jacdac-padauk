@@ -23,7 +23,7 @@ clear_loop:
 ENDM
 
 /*
-These two are used to resemble if statements:
+The if* macros below are used to resemble 'if' statements:
 
   ifset some.bit
     do_something
@@ -37,4 +37,8 @@ ENDM
 
 ifclear MACRO flag
 	t1sn flag
+ENDM
+
+ifneq MACRO x, y
+	ceqsn x, y
 ENDM

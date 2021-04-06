@@ -187,11 +187,11 @@ timeout:
 leave_irq:
 	call t16_sync
 	mov a, crc_l
-	ceqsn a, packet_buffer[0]
-	goto pkt_error
+	ifneq a, packet_buffer[0]
+	  goto pkt_error
 	mov a, crc_h
-	ceqsn a, packet_buffer[1]
-	goto pkt_error
+	ifneq a, packet_buffer[1]
+	  goto pkt_error
 
 	.mova isr0, packet_buffer[3]
 	ifclear isr0.JD_FRAME_FLAG_COMMAND

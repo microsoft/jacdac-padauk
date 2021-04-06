@@ -13,6 +13,9 @@ f_want_ack equ 3
 f_identify equ 4
 f_reset_in equ 5
 
+txp_announce equ 0
+txp_ack equ 1
+
 tx_addr equ 0x10
 
 #define JD_FRAME_FLAG_COMMAND 1
@@ -44,6 +47,7 @@ tx_addr equ 0x10
 	.ramadr 0x00
 	WORD    memidx
 	BYTE    flags
+	BYTE    tx_pending
 	BYTE	isr0
 	BYTE    reset_cnt
 

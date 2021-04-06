@@ -23,8 +23,8 @@ ENDM
 	call get_id
 	mov isr1, a
 	idxm a, memidx
-	ceqsn a, isr1
-	goto fail_lbl
+	ifneq a, isr1
+	  goto fail_lbl
 	dec lb@memidx
 	dzsn isr0
 	goto @B
