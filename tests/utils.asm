@@ -21,3 +21,20 @@ clear_loop:
 	dzsn lb@memidx
 	goto clear_loop
 ENDM
+
+/*
+These two are used to resemble if statements:
+
+  ifset some.bit
+    do_something
+
+the do_something is exactly one instruction.
+ */
+ 
+ifset MACRO flag
+	t0sn flag
+ENDM
+
+ifclear MACRO flag
+	t1sn flag
+ENDM

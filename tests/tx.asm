@@ -4,8 +4,8 @@
 
 try_tx:
 	disgint
-	t1sn PA.JD_D
-	goto interrupt // we got conflict on initial break - try rx in irq handler
+	ifclear PA.JD_D
+	  goto interrupt // we got conflict on initial break - try rx in irq handler
 	PA.JD_D = 0 // set lo
 	PAC.JD_D = 1 // set to output
 
@@ -55,8 +55,8 @@ try_tx:
 
 _nextbit:	
 	sr tx_data
-	t0sn CF
-	goto _bit1
+	ifset CF
+	  goto _bit1
 	nop
 	PA.JD_D = 0
 	dzsn a

@@ -53,8 +53,8 @@ not_ctrl_cmd:
 	mov a, rx_data_2
 	sr a
 	sr a
-	t0sn ZF
-	goto rx_process_end // keep disabled - timer was 0
+	ifset ZF
+	  goto rx_process_end // keep disabled - timer was 0
 	set1 flags.f_reset_in // enable
 	add a, t16_262ms
 	mov t_reset, a // set timer

@@ -107,13 +107,13 @@ pin_init:
 loop:
 	call t16_sync
 
-	t1sn flags.f_reset_in
-	goto skip_reset_in
+	ifclear flags.f_reset_in
+	  goto skip_reset_in
 	.t16_chk t16_262ms, t_reset, reset
 skip_reset_in:
 
-	t1sn flags.f_set_tx
-	goto skip_schedule_tx
+	ifclear flags.f_set_tx
+	  goto skip_schedule_tx
 	set0 flags.f_set_tx
 	call rng_next // uses tmp0
 	and a, 31
@@ -123,14 +123,14 @@ skip_reset_in:
 	add t_tx, a
 
 skip_schedule_tx:
-	t1sn flags.f_has_tx
-	goto no_tx
+	ifclear flags.f_has_tx
+	  goto no_tx
 	.t16_chk t16_4us, t_tx, <goto try_tx>
 	goto loop // if tx is full, no point trying announce etc
 
 no_tx:
-	t1sn flags.f_want_ack
-	goto no_ack_req
+	ifclear flags.f_want_ack
+	  goto no_ack_req
 	set0 flags.f_want_ack
 	set1 flags.f_has_tx
 	clear tx_size
@@ -150,8 +150,8 @@ do_announce:
 	// reset_cnt maxes out at 0xf	
 	mov a, 0xf
 	inc reset_cnt
-	t0sn reset_cnt.4
-	mov reset_cnt, a
+	ifset reset_cnt.4
+		mov reset_cnt, a
 	.mova tx_payload[0], reset_cnt
 	.mova tx_payload[1], 0x01 // ACK-supported
 	clear tx_payload[2] // here we could insert packet_cnt, but we don't track that yet

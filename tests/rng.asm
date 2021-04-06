@@ -29,12 +29,12 @@ _rng_byte:
 	INTRQ.TM2 = 0
 @@:
 	add a, 1
-	t1sn INTRQ.TM2
-	goto @b
+	ifclear INTRQ.TM2
+	  goto @b
 	xor a, tmp1
 	sl a
-	t0sn CF
-	or a, 0x01
+	ifset CF
+	  or a, 0x01
 	mov tmp1, a
 	dzsn tmp0
 	goto _rng_byte

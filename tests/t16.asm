@@ -28,8 +28,8 @@ ENDM
 .t16_impl MACRO
 t16_sync:
 	ldt16 t16_low
-	t1sn INTRQ.T16
-	ret
+	ifclear INTRQ.T16
+	  ret
 	INTRQ.T16 = 0
 	inc lb@t16_high
 	addc hb@t16_high

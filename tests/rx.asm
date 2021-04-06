@@ -19,10 +19,10 @@ ENDM
 	.romadr	0x10            // interrupt vector
 interrupt:
 	INTRQ.TM2 = 0
-	t0sn flags.f_in_rx
-	goto timeout
-	t0sn PA.JD_D
-	reti
+	ifset flags.f_in_rx
+	  goto timeout
+	ifset PA.JD_D
+	  reti
 
 	pushaf
 
@@ -36,8 +36,8 @@ interrupt:
 
 	// wait for end of lo pulse
 @@:
-	t1sn PA.JD_D
-	goto @b
+	ifclear PA.JD_D
+	  goto @b
 
 	a = packet_buffer
 	mov lb@memidx, a
@@ -50,12 +50,12 @@ interrupt:
 	mov crc_h, a
 
 	// wait for serial transmission to start
-@@:
+rx_retry_wait:
 .repeat 20
-	t1sn PA.JD_D
-	goto rx_lo_first
+	ifclear PA.JD_D
+	  goto rx_lo_first
 .endm
-	goto @b
+	goto rx_retry_wait
 
     .include devid.asm
 
@@ -67,8 +67,8 @@ rx_lo_first:
 
 rx_byte:
 .repeat 10
-	t1sn PA.JD_D
-	goto rx_lo
+	ifclear PA.JD_D
+	  goto rx_lo
 .endm
 	goto rx_byte
 
@@ -77,12 +77,12 @@ rx_lo:
 	idxm memidx, a   	// 2T
 	dzsn rx_buflimit    // rx_buflimit--
 	inc lb@memidx    	// when rx_buflimit reaches 0, we stop incrementing memidx
-	t0sn ZF          	// if rx_buflimit==0
-	inc rx_buflimit     //     rx_buflimit++ -> keep rx_buflimit at 0
+	ifset ZF          	// if rx_buflimit==0
+	  inc rx_buflimit   //     rx_buflimit++ -> keep rx_buflimit at 0
 
 rx_lo_skip:
-		t0sn PA.JD_D
-		set1 rx_data.0
+		ifset PA.JD_D
+		  set1 rx_data.0
 
 	// uint8_t x = (crc >> 8) ^ data;
 	mov a, crc_d
@@ -93,8 +93,8 @@ rx_lo_skip:
 	and a, 0x0f
 	xor rx_crc_tmp, a // rx_crc_tmp==x	
 
-		t0sn PA.JD_D
-		set1 rx_data.1
+		ifset PA.JD_D
+		  set1 rx_data.1
 
 	// crc = (crc << 8) ^ (x << 12) ^ (x << 5) ^ x; =>
 	// crc_h = crc_l ^ (x << 4) ^ (x >> 3)
@@ -105,8 +105,8 @@ rx_lo_skip:
 	mov crc_h0, a
 	mov a, rx_crc_tmp
 
-		t0sn PA.JD_D
-		set1 rx_data.2
+		ifset PA.JD_D
+		  set1 rx_data.2
 
 	sr a
 	sr a
@@ -115,8 +115,8 @@ rx_lo_skip:
 	nop
 	nop
 
-		t0sn PA.JD_D
-		set1 rx_data.3
+		ifset PA.JD_D
+		  set1 rx_data.3
 
 	// crc_l = (x << 5) ^ x
 	mov a, rx_crc_tmp
@@ -126,8 +126,8 @@ rx_lo_skip:
 	sl a
 	xor crc_l0, a
 
-		t0sn PA.JD_D
-		set1 rx_data.4
+		ifset PA.JD_D
+		  set1 rx_data.4
 
 	// check if we're in CRC range - after first two bytes of stored crc, and before the end of the whole packet
 	mov a, packet_buffer[2]
@@ -136,23 +136,23 @@ rx_lo_skip:
 
 	// if in CRC range, store into crc_l
 	mov a, crc_l0
-	t1sn CF
-	mov crc_l, a
+	ifclear CF
+	  mov crc_l, a
 
-		t0sn PA.JD_D
-		set1 rx_data.5
+		ifset PA.JD_D
+		  set1 rx_data.5
 
 	// if in CRC range, store into crc_h
 	mov a, crc_h0
-	t1sn CF
-	mov crc_h, a
+	ifclear CF
+	  mov crc_h, a
 
 	nop
 	nop
 	nop
 	
-		t0sn PA.JD_D
-		set1 rx_data.6
+		ifset PA.JD_D
+		  set1 rx_data.6
 
 	nop
 	nop
@@ -161,8 +161,8 @@ rx_lo_skip:
 	
 		PA.JD_LED = 1 // bit marking
 		nop
-		t0sn PA.JD_D
-		set1 rx_data.7 // 9T excluding goto rx_byte
+		ifset PA.JD_D
+		  set1 rx_data.7 // 9T excluding goto rx_byte
 		PA.JD_LED = 0 // bit marking
 
 	inc rx_crc_range
@@ -194,23 +194,23 @@ leave_irq:
 	goto pkt_error
 
 	.mova isr0, packet_buffer[3]
-	t1sn isr0.JD_FRAME_FLAG_COMMAND
-	goto not_interested // this is a report
-	t0sn isr0.JD_FRAME_FLAG_VNEXT
-	goto pkt_error
+	ifclear isr0.JD_FRAME_FLAG_COMMAND
+	  goto not_interested // this is a report
+	ifset isr0.JD_FRAME_FLAG_VNEXT
+	  goto pkt_error
 
     .check_id not_interested // uses isr0, isr1
 
 	mov a, packet_buffer[2]
 	sub a, buffer_size-frame_header_size+1
-	t1sn CF
-	goto pkt_error // it was a packet for us, but it was too large
+	ifclear CF
+	  goto pkt_error // it was a packet for us, but it was too large
 
 
 .include rxctrl.asm
 
-	t1sn isr0.JD_FRAME_FLAG_ACK_REQUESTED
-	goto no_ack_needed
+	ifclear isr0.JD_FRAME_FLAG_ACK_REQUESTED
+	  goto no_ack_needed
 	set1 flags.f_want_ack
 	.mova ack_crc_l, crc_l
 	.mova ack_crc_h, crc_h

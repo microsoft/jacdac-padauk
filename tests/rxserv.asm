@@ -29,8 +29,8 @@
 	goto streaming_int_ovf
 	mov a, rx_data_0
 	sl a
-	t0sn CF
-	goto streaming_int_ovf
+	ifset CF
+	  goto streaming_int_ovf
 	mov a, rx_data_0
 	goto streaming_int_set
 
@@ -46,8 +46,8 @@ not_streaming_int:
 	goto rx_process_end
 
 not_serv_reg_set:
-	t0sn flags.f_has_tx
-	goto pkt_overflow
+	ifset flags.f_has_tx
+	  goto pkt_overflow
 	ceqsn a, JD_HIGH_REG_RW_GET
 	goto not_serv_reg_rw_get
 	mov a, rx_cmd_l
@@ -107,8 +107,8 @@ send_reading:
 
 .sensor_stream MACRO
 	mov a, streaming_samples
-	t0sn ZF
-	goto skip_stream
+	ifset ZF
+	  goto skip_stream
 	.t16_chk t16_1ms, t_streaming, <goto do_stream>
 	goto skip_stream
 do_stream:
