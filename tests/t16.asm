@@ -20,7 +20,7 @@ ENDM
 .t16_init MACRO
 t16_init_:
 	stt16 t16_low
-	$ INTEGS BIT_F ; falling edge on T16
+	$ INTEGS BIT_F // falling edge on T16
 	$ T16M IHRC, /64, BIT15
 ENDM
 

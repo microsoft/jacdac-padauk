@@ -8,7 +8,7 @@
 .rx_init MACRO
 	PAPH.JD_D = 1
 	$ TM2S 8BIT, /1, /1
-	TM2B = 75 ; irq every 75 instructions, ~9.5us
+	TM2B = 75 // irq every 75 instructions, ~9.5us
 	$ TM2C SYSCLK
 	INTRQ = 0x00
 	$ INTEN = TM2

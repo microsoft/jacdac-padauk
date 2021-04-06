@@ -27,8 +27,8 @@ tx_addr equ 0x10
 .include t16.asm
 
 .CHIP   PFS154
-; Give package map to writer	pcount	VDD	PA0	PA3	PA4	PA5	PA6	PA7	GND	SHORTC_MSK1	SHORTC_MASK1	SHIFT
-;.writer package 		6, 	1, 	0,	4, 	27, 	25,	26, 	0,	28, 	0x0007, 	0x0007, 	0
+// Give package map to writer	pcount	VDD	PA0	PA3	PA4	PA5	PA6	PA7	GND	SHORTC_MSK1	SHORTC_MASK1	SHIFT
+//.writer package 		6, 	1, 	0,	4, 	27, 	25,	26, 	0,	28, 	0x0007, 	0x0007, 	0
 //{{PADAUK_CODE_OPTION
 	.Code_Option	Security	Disable		// Security 7/8 words Enable
 	.Code_Option	Bootup_Time	Fast
@@ -38,11 +38,11 @@ tx_addr equ 0x10
 	.Code_Option	LVR		3.5V
 //}}PADAUK_CODE_OPTION
 
-	; possible program variable memory allocations:
-	;		srt	end
-	; 	BIT	0	16
-	;	WORD	0	30
-	;	BYTE	0	64
+	// possible program variable memory allocations (PMC150C)
+	//		srt	end
+	// 	BIT	0	16
+	//	WORD	0	30
+	//	BYTE	0	64
 
 	.ramadr 0x00
 	WORD    memidx
@@ -100,8 +100,8 @@ main:
 	.rx_init
 
 pin_init:
-	PAC.JD_LED 	= 	1 ; output
-	PAC.JD_TM 	= 	1 ; output
+	PAC.JD_LED 	= 	1 // output
+	PAC.JD_TM 	= 	1 // output
 
 	call t16_sync
 	.t16_set t16_262ms, t_announce, 2
@@ -111,20 +111,19 @@ pin_init:
 loop:
 	call t16_sync
 
-	ifclear flags.f_reset_in
-	  goto skip_reset_in
-	.t16_chk t16_262ms, t_reset, reset
-skip_reset_in:
+	if (flags.f_reset_in) {
+		.t16_chk t16_262ms, t_reset, reset
+	}
 
-	ifclear flags.f_set_tx
-	  goto skip_schedule_tx
-	set0 flags.f_set_tx
-	call rng_next // uses tmp0
-	and a, 31
-	add a, 12
-	mov t_tx, a
-	mov a, t16_4us
-	add t_tx, a
+	if (flags.f_set_tx) {
+		set0 flags.f_set_tx
+		call rng_next // uses tmp0
+		and a, 31
+		add a, 12
+		mov t_tx, a
+		mov a, t16_4us
+		add t_tx, a
+	}
 
 skip_schedule_tx:
 	ifclear flags.f_has_tx
