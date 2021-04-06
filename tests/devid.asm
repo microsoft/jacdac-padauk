@@ -2,13 +2,13 @@ IDSIZE equ 8
 
 .fill_id MACRO
 	a = packet_buffer+4+IDSIZE-1
-	mov lb@memidx, a
+	mov memidx$0, a
 	.mova isr0, IDSIZE
 @@:
 	mov a, isr0
 	call get_id
 	idxm memidx, a
-	dec lb@memidx
+	dec memidx$0
 	dzsn isr0
 	goto @B
 	ret
@@ -16,7 +16,7 @@ ENDM
 
 .check_id MACRO fail_lbl
 	a = packet_buffer+4+IDSIZE-1
-	mov lb@memidx, a
+	mov memidx$0, a
 	.mova isr0, IDSIZE
 @@:
 	mov a, isr0
@@ -25,7 +25,7 @@ ENDM
 	idxm a, memidx
 	ifneq a, isr1
 	  goto fail_lbl
-	dec lb@memidx
+	dec memidx$0
 	dzsn isr0
 	goto @B
 ENDM

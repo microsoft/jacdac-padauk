@@ -1,7 +1,7 @@
-#define t16_4us lb@t16_low
-#define t16_1ms hb@t16_low
-#define t16_262ms lb@t16_high
-#define t16_67s hb@t16_high
+#define t16_4us t16_low$0
+#define t16_1ms t16_low$1
+#define t16_262ms t16_high$0
+#define t16_67s t16_high$1
 
 .t16_chk MACRO t16_v, tim, handler
 	mov a, t16_v
@@ -31,7 +31,7 @@ t16_sync:
 	ifclear INTRQ.T16
 	  ret
 	INTRQ.T16 = 0
-	inc lb@t16_high
-	addc hb@t16_high
+	inc t16_high$0
+	addc t16_high$1
 	ret
 ENDM

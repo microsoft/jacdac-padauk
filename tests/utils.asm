@@ -13,12 +13,12 @@ ENDM
 ENDM
 
 .clear_memory MACRO
-	.mova lb@memidx, _SYS(SIZE.RAM)-1
-	clear hb@memidx
+	.mova memidx$0, _SYS(SIZE.RAM)-1
+	clear memidx$1
 	mov a, 0x00
 clear_loop:
 	idxm memidx, a
-	dzsn lb@memidx
+	dzsn memidx$0
 	goto clear_loop
 ENDM
 

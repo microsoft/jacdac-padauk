@@ -31,7 +31,7 @@ try_tx:
 	PA.JD_D = 1
 
 	// ~27 cycles per byte
-	.mova lb@memidx, tx_addr+12
+	.mova memidx$0, tx_addr+12
 	.mova crc_len, frm_sz
 	call crc16_loop // uses isr0, isr1
 	mov a, frm_sz
@@ -85,7 +85,7 @@ _stop:
 tx_hd:
 	mov a, tx_idx
 	add a, tx_addr
-	mov lb@memidx, a
+	mov memidx$0, a
 	idxm a, memidx
 	// -- 9
 	goto tx_hd_id

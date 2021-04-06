@@ -26,7 +26,7 @@ crc16:
 crc16_loop:
 	// uint8_t data = *ptr++;
 	idxm a, memidx
-	inc lb@memidx
+	inc memidx$0
 	// uint8_t x = (crc >> 8) ^ data;
 	xor a, crc_h
 	mov crc_tmp, a

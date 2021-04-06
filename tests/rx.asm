@@ -40,7 +40,7 @@ interrupt:
 	  goto @b
 
 	a = packet_buffer
-	mov lb@memidx, a
+	mov memidx$0, a
 	.mova rx_buflimit, buffer_size+1
 	clear rx_data
 	.mova rx_crc_range, -crc_size-1
@@ -76,7 +76,7 @@ rx_lo:
 	xch rx_data    		// a==0 here, so this clears rx_data for next round
 	idxm memidx, a   	// 2T
 	dzsn rx_buflimit    // rx_buflimit--
-	inc lb@memidx    	// when rx_buflimit reaches 0, we stop incrementing memidx
+	inc memidx$0    	// when rx_buflimit reaches 0, we stop incrementing memidx
 	ifset ZF          	// if rx_buflimit==0
 	  inc rx_buflimit   //     rx_buflimit++ -> keep rx_buflimit at 0
 
