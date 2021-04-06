@@ -125,24 +125,21 @@ loop:
 		add t_tx, a
 	}
 
-skip_schedule_tx:
-	ifclear flags.f_has_tx
-	  goto no_tx
-	.t16_chk t16_4us, t_tx, <goto try_tx>
-	goto loop // if tx is full, no point trying announce etc
+	if (flags.f_has_tx) {
+		.t16_chk t16_4us, t_tx, <goto try_tx>
+		goto loop // if tx is full, no point trying announce etc
+	}
 
-no_tx:
-	ifclear flags.f_want_ack
-	  goto no_ack_req
-	set0 flags.f_want_ack
-	set1 flags.f_has_tx
-	clear tx_size
-	.mova tx_service_number, 0x3f
-	.mova tx_service_command_l, ack_crc_l
-	.mova tx_service_command_h, ack_crc_h
-	goto loop
+	if (flags.f_want_ack) {
+		set0 flags.f_want_ack
+		set1 flags.f_has_tx
+		clear tx_size
+		.mova tx_service_number, 0x3f
+		.mova tx_service_command_l, ack_crc_l
+		.mova tx_service_command_h, ack_crc_h
+		goto loop
+	}
 
-no_ack_req:
 	.sensor_stream
 	.t16_chk t16_262ms, t_announce, <goto do_announce>
 	goto loop

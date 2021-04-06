@@ -20,58 +20,48 @@
 
 	mov a, rx_service_num
 	ifneq a, 0
-	  goto not_ctrl
+		goto not_ctrl
 	mov a, rx_cmd_h
-	ifneq a, JD_HIGH_CMD
-	  goto not_ctrl_cmd
-	mov a, rx_cmd_l
 
-	ifneq a, JD_CONTROL_CMD_RESET
-	  goto @f
-	reset
-@@:
-	ifneq a, JD_CONTROL_CMD_IDENTIFY
-	  goto @f
-	set1 flags.f_identify
-	goto rx_process_end
-@@:
+	if (a == JD_HIGH_CMD) {
+		mov a, rx_cmd_l
 
-	goto rx_process_end
+		if (a == JD_CONTROL_CMD_RESET) {
+			reset
+		}
+		if (a == JD_CONTROL_CMD_IDENTIFY) {
+			set1 flags.f_identify
+		}
 
-not_ctrl_cmd:
-	ifneq a, JD_HIGH_REG_RW_SET
-	  goto not_ctrl_reg_set
+		goto rx_process_end
+	}
 
-	mov a, rx_cmd_l
+	if (a == JD_HIGH_REG_RW_SET) {
+		mov a, rx_cmd_l
 
-	ifneq a, JD_CONTROL_REG_RW_RESET_IN
-	  goto not_reset_in
-	set0 flags.f_reset_in // first disable reset-in
-	mov a, rx_data_3
-	ifneq a, 0
-	  goto pkt_invalid // they ask us to wait too long
-	mov a, rx_data_2
-	sr a
-	sr a
-	ifset ZF
-	  goto rx_process_end // keep disabled - timer was 0
-	set1 flags.f_reset_in // enable
-	add a, t16_262ms
-	mov t_reset, a // set timer
+		if (a == JD_CONTROL_REG_RW_RESET_IN) {
+			set0 flags.f_reset_in // first disable reset-in
+			mov a, rx_data_3
+			ifneq a, 0
+				goto pkt_invalid // they ask us to wait too long
+			mov a, rx_data_2
+			sr a
+			sr a
+			ifset ZF
+				goto rx_process_end // keep disabled - timer was 0
+			set1 flags.f_reset_in // enable
+			add a, t16_262ms
+			mov t_reset, a // set timer
+		}
+	}
 
-not_reset_in:
-	goto rx_process_end
-	
-not_ctrl_reg_set:
 	goto rx_process_end
 
 not_ctrl:
 	ifneq a, 1
-	  goto not_serv1
+		goto not_serv1
 
 .include rxserv.asm
-
-	goto rx_process_end
 
 not_serv1:
 rx_process_end:

@@ -12,77 +12,73 @@
 
 	mov a, rx_cmd_h
 
-	ifneq a, JD_HIGH_REG_RW_SET
-	  goto not_serv_reg_set
+	if (a == JD_HIGH_REG_RW_SET) {
+		mov a, rx_cmd_l
 
-	mov a, rx_cmd_l
+		if (a == JD_REG_RW_STREAMING_SAMPLES) {
+			.mova streaming_samples, rx_data_0
+			goto rx_process_end
+		}
 
-	ifneq a, JD_REG_RW_STREAMING_SAMPLES
-	  goto @f
-	.mova streaming_samples, rx_data_0
-	goto rx_process_end
-@@:
-	ifneq a, JD_REG_RW_STREAMING_INTERVAL
-	  goto not_streaming_int
-	mov a, rx_data_1
-	ifneq a, 0
-	  goto streaming_int_ovf
-	mov a, rx_data_0
-	sl a
-	ifset CF
-	  goto streaming_int_ovf
-	mov a, rx_data_0
-	goto streaming_int_set
+		if (a == JD_REG_RW_STREAMING_INTERVAL) {
+			mov a, rx_data_1
+			ifneq a, 0
+				goto streaming_int_ovf
+			mov a, rx_data_0
+			sl a
+			ifset CF
+				goto streaming_int_ovf
+			mov a, rx_data_0
+			goto streaming_int_set
 
-streaming_int_ovf:
-	mov a, 127
-streaming_int_set:
-	mov streaming_interval, a
-	add a, t16_1ms
-	mov t_streaming, a
-	goto rx_process_end
+		streaming_int_ovf:
+			mov a, 127
+		streaming_int_set:
+			mov streaming_interval, a
+			add a, t16_1ms
+			mov t_streaming, a
+			// goto rx_process_end
+		}
 
-not_streaming_int:
-	goto rx_process_end
+		goto rx_process_end
+	}
 
-not_serv_reg_set:
 	ifset flags.f_has_tx
 	  goto pkt_overflow
-	ifneq a, JD_HIGH_REG_RW_GET
-	  goto not_serv_reg_rw_get
-	mov a, rx_cmd_l
 
-	ifneq a, JD_REG_RW_STREAMING_SAMPLES
-	  goto @f
-	.mova tx_payload[0], streaming_samples
-	.mova tx_size, 1
-	goto prep_answer
-@@:
+	if (a == JD_HIGH_REG_RW_GET) {
+		mov a, rx_cmd_l
 
-	ifneq a, JD_REG_RW_STREAMING_INTERVAL
-	  goto @f
-	.mova tx_payload[0], streaming_interval
-	clear tx_payload[1]
-	clear tx_payload[2]
-	clear tx_payload[3]
-	.mova tx_size, 4
-	goto prep_answer
-@@:
+		if (a == JD_REG_RW_STREAMING_SAMPLES) {
+			.mova tx_payload[0], streaming_samples
+			.mova tx_size, 1
+			goto prep_answer
+		}
 
-	goto rx_process_end
+		if (a == JD_REG_RW_STREAMING_INTERVAL) {
+			.mova tx_payload[0], streaming_interval
+			clear tx_payload[1]
+			clear tx_payload[2]
+			clear tx_payload[3]
+			.mova tx_size, 4
+			goto prep_answer
+		}
 
-not_serv_reg_rw_get:
-	ifneq a, JD_HIGH_REG_RO_GET
-	  goto not_serv_reg_ro_get
-	mov a, rx_cmd_l
+		goto rx_process_end
+	}
 
-	ifneq a, JD_REG_RO_READING
-	  goto @f
-	call send_reading
-	goto rx_process_end
-@@:
 
-not_serv_reg_ro_get:
+	if (a == JD_HIGH_REG_RO_GET) {
+		mov a, rx_cmd_l
+
+		if (a == JD_REG_RO_READING) {
+			call send_reading
+			// goto rx_process_end
+		}
+		
+		// goto rx_process_end
+	}
+
 	goto rx_process_end
 
 prep_answer:
