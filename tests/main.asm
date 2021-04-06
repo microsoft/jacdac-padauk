@@ -140,6 +140,7 @@ no_tx:
 	goto loop
 
 no_ack_req:
+	.sensor_stream
 	.t16_chk t16_262ms, t_announce, <goto do_announce>
 	goto loop
 
