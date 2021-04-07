@@ -5,7 +5,7 @@ JD_D 	equ	7
 frame_header_size equ 12
 crc_size equ 2
 payload_size equ 8
-buffer_size equ (payload_size + frame_header_size)
+buffer_size equ (frame_header_size + 4 + payload_size)
 
 f_in_rx equ 0
 f_set_tx equ 1

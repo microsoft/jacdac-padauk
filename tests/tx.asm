@@ -21,6 +21,7 @@ try_tx:
 	add a, 3+4 // add pkt-header size + round up to word
 	and a, 0b1111_1100
 	mov frm_sz, a // frm_sz == 4 || 8 || 12
+	// initialize crc_l/h from the burned-in values, depending on packet size
 	sr a
 	add a, 7
 	mov isr0, a

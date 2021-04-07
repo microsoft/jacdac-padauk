@@ -47,9 +47,39 @@ interrupt:
 	.mova memidx$0, pkt_addr
 	.mova rx_buflimit, buffer_size+1
 
-	clear rx_data
+	mov a, 0
+	goto rx_wait_start
 
-	// wait for serial transmission to start
+
+    .include devid.asm
+
+rx_start:
+	mov TM2CT, a
+	$ TM2S 8BIT, /1, /2	 // 2T
+	clear rx_data
+	PA.JD_TM = 1
+	mov a, 0x01
+rx_next_bit:
+	ifset PA.JD_D
+		or rx_data, a
+	PA.JD_TM = 0
+	sl a
+	nop
+	ceqsn a, 0x80
+		goto rx_next_bit
+rx_lastbit:
+	nop
+	ifset PA.JD_D
+		or rx_data, a
+	mov a, rx_data
+	idxm memidx, a   	// 2T
+	dzsn rx_buflimit    // rx_buflimit--
+		inc memidx$0    // when rx_buflimit reaches 0, we stop incrementing memidx
+	ifset ZF          	// if rx_buflimit==0
+		inc rx_buflimit //     rx_buflimit++ -> keep rx_buflimit at 0
+	mov a, 0
+	mov TM2CT, a
+// wait for serial transmission to start
 rx_wait_start:
 .repeat 20
 	ifclear PA.JD_D
@@ -57,36 +87,11 @@ rx_wait_start:
 .endm
 	goto rx_wait_start
 
-    .include devid.asm
-
-rx_start:
-	$ TM2S 8BIT, /1, /3	 // 2T
-	nop
-	nop
-	nop
-	mov a, 0x01
-rx_next_bit:
-	ifset PA.JD_D
-		or rx_data, a
-	sl a
-	ifset ZF
-		goto rx_lastbit
-	nop
-	goto rx_next_bit
-rx_lastbit:
-	// a==0 here
-	mov TM2CT, a
-	xch rx_data    		// this clears rx_data for next round
-	idxm memidx, a   	// 2T
-	dzsn rx_buflimit    // rx_buflimit--
-	inc memidx$0    	// when rx_buflimit reaches 0, we stop incrementing memidx
-	ifset ZF          	// if rx_buflimit==0
-	  inc rx_buflimit   //     rx_buflimit++ -> keep rx_buflimit at 0
-	nop
-	goto rx_wait_start
-
 
 timeout:
+	PA.JD_LED = 1
+	PA.JD_LED = 0
+
 	// this is nested IRQ; we want to return to original code, not outer interrupt
 	// TODO: try fake popaf
 	mov a, SP
