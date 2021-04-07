@@ -5,7 +5,7 @@
 .rx_init MACRO
 	PAPH.JD_D = 1
 	$ TM2S 8BIT, /1, /1
-	TM2B = 75 // irq every 75 instructions, ~9.5us
+	TM2B = 64 // irq every 64 instructions, 8us
 	$ TM2C SYSCLK
 	INTRQ = 0x00
 	$ INTEN = TM2
@@ -27,7 +27,7 @@ interrupt:
 	PA.JD_TM = 0
 
 	set1 flags.f_in_rx
-	$ TM2S 8BIT, /1, /14 // ~140us
+	$ TM2S 8BIT, /1, /17 // ~136us
 	.mova TM2CT, 0
 	engint
 

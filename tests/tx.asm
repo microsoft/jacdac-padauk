@@ -33,7 +33,7 @@ try_tx:
 	.mova crc_len, frm_sz
 	call crc16_loop // uses isr0, isr1
 
-	.delay 150 // TODO - use t16 to wait the right amount always
+	.delay 150 // TODO - use t16 or tm2 to wait the right amount always
 
 	clear tx_idx
 	mov a, 12
