@@ -1,6 +1,4 @@
 #define rx_buflimit isr0
-#define rx_crc_range isr2
-#define rx_crc_tmp isr1
 
 .rx_init MACRO
 	PAPH.JD_D = 1
@@ -41,140 +39,44 @@ interrupt:
 
 	.mova memidx$0, pkt_addr
 	.mova rx_buflimit, buffer_size+1
-	clear rx_data
-	.mova rx_crc_range, -crc_size-1
 
-	mov a, 0xff
-	mov crc_l1, a
-	mov crc_h1, a
+	clear rx_data
 
 	// wait for serial transmission to start
-rx_retry_wait:
+rx_wait_start:
 .repeat 20
 	ifclear PA.JD_D
-	  goto rx_lo_first
+	  goto rx_start
 .endm
-	goto rx_retry_wait
+	goto rx_wait_start
 
     .include devid.asm
 
-rx_lo_first:
+rx_start:
 	$ TM2S 8BIT, /1, /3	 // 2T
 	nop
 	nop
-	goto rx_lo_skip // 2T
-
-rx_byte:
-.repeat 10
-	ifclear PA.JD_D
-	  goto rx_lo
-.endm
-	goto rx_byte
-
-rx_lo:
-	xch rx_data    		// a==0 here, so this clears rx_data for next round
+	nop
+	mov a, 0x01
+rx_next_bit:
+	ifset PA.JD_D
+		or rx_data, a
+	sl a
+	ifset ZF
+		goto rx_lastbit
+	nop
+	goto rx_next_bit
+rx_lastbit:
+	// a==0 here
+	mov TM2CT, a
+	xch rx_data    		// this clears rx_data for next round
 	idxm memidx, a   	// 2T
 	dzsn rx_buflimit    // rx_buflimit--
 	inc memidx$0    	// when rx_buflimit reaches 0, we stop incrementing memidx
 	ifset ZF          	// if rx_buflimit==0
 	  inc rx_buflimit   //     rx_buflimit++ -> keep rx_buflimit at 0
-
-rx_lo_skip:
-		ifset PA.JD_D
-		  set1 rx_data.0
-
-	// uint8_t x = (crc >> 8) ^ data;
-	mov a, crc_d
-	xor a, crc_h1
-	mov rx_crc_tmp, a
-	// x ^= x >> 4;
-	swap a
-	and a, 0x0f
-	xor rx_crc_tmp, a // rx_crc_tmp==x	
-
-		ifset PA.JD_D
-		  set1 rx_data.1
-
-	// crc = (crc << 8) ^ (x << 12) ^ (x << 5) ^ x; =>
-	// crc_h = crc_l ^ (x << 4) ^ (x >> 3)
-	mov a, rx_crc_tmp
-	swap a
-	and a, 0xf0
-	xor a, crc_l1
-	mov crc_h0, a
-	mov a, rx_crc_tmp
-
-		ifset PA.JD_D
-		  set1 rx_data.2
-
-	sr a
-	sr a
-	sr a
-	xor crc_h0, a
 	nop
-	nop
-
-		ifset PA.JD_D
-		  set1 rx_data.3
-
-	// crc_l = (x << 5) ^ x
-	mov a, rx_crc_tmp
-	mov crc_l0, a
-	swap a
-	and a, 0xf0
-	sl a
-	xor crc_l0, a
-
-		ifset PA.JD_D
-		  set1 rx_data.4
-
-	// check if we're in CRC range - after first two bytes of stored crc, and before the end of the whole packet
-	mov a, frm_sz
-	add a, frame_header_size-crc_size-1
-	sub a, rx_crc_range
-
-	// if in CRC range, store into crc_l
-	mov a, crc_l0
-	ifclear CF
-	  mov crc_l1, a
-
-		ifset PA.JD_D
-		  set1 rx_data.5
-
-	// if in CRC range, store into crc_h
-	mov a, crc_h0
-	ifclear CF
-	  mov crc_h1, a
-
-	nop
-	nop
-	nop
-	
-		ifset PA.JD_D
-		  set1 rx_data.6
-
-	nop
-	nop
-	nop
-	nop
-	
-		PA.JD_LED = 1 // bit marking
-		nop
-		ifset PA.JD_D
-		  set1 rx_data.7 // 9T excluding goto rx_byte
-		PA.JD_LED = 0 // bit marking
-
-	inc rx_crc_range
-	mov a, rx_data
-	mov crc_d, a
-
-	nop
-	nop
-	nop
-
-	mov a, 0
-	mov TM2CT, a
-	goto rx_byte
+	goto rx_wait_start
 
 
 timeout:
@@ -184,12 +86,24 @@ timeout:
 	sub a, 2
 	mov SP, a
 leave_irq:
+	// save crc_l/h for future comparison
+	.mova rx_byte, crc_l
+	.mova isr2, crc_h
+	mov a, 0xff
+	mov crc_l, a
+	mov crc_h, a
+	.mova memidx$0, pkt_addr+2
+	mov a, frm_sz
+	add a, 10
+	call crc16 // uses isr0,1
+
 	call t16_sync
+
 	mov a, crc_l
-	ifneq a, crc_l1
+	ifneq a, rx_byte
 	  goto pkt_error
 	mov a, crc_h
-	ifneq a, crc_h1
+	ifneq a, isr2
 	  goto pkt_error
 
 	.mova isr0, frm_flags

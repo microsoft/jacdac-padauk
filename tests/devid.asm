@@ -11,7 +11,6 @@ IDSIZE equ 8
 	dec memidx$0
 	dzsn isr0
 	goto @B
-	ret
 ENDM
 
 .check_id MACRO fail_lbl

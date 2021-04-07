@@ -51,16 +51,14 @@ pkt_addr equ 0x10
 	WORD    memidx
 	BYTE    flags
 	BYTE    tx_pending
-	BYTE	isr0
+	BYTE	isr0, isr1, isr2
 	BYTE    reset_cnt
+	BYTE    rng_x
 
 	BYTE    ack_crc_l, ack_crc_h
 	BYTE    t_reset
 	BYTE    t_announce
 	BYTE    t_tx
-
-	BYTE	crc_d
-	BYTE	isr1
 
 	WORD    t16_low
 	WORD    t16_high
@@ -80,16 +78,12 @@ pkt_addr equ 0x10
 	BYTE	pkt_payload[payload_size]
 	BYTE	rx_data // this is overwritten during rx if packet too long (but that's fine)
 
-	BYTE	isr2
-	BYTE    crc_l0, crc_h0
-	BYTE    crc_l1, crc_h1
-	BYTE    rng_x
-
 	// so far:
-	// application code can use 1 word of stack
+	// application is not using stack when IRQ enabled
 	// rx ISR can do up to 3
-	// total: 4
-	WORD	main_st[6]
+	WORD	main_st[3]
+
+	// more data defined in rxserv.asm
 
 	goto	main
 
@@ -147,7 +141,7 @@ do_announce:
 	set1 tx_pending.txp_announce
 	goto loop
 
-.setcmd EXPAND x, y
+.setcmd MACRO x, y
 .ifidni x, JD_HIGH_REG_RO_GET
 .ifz x
 	clear pkt_service_command_h
