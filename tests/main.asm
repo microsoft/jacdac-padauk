@@ -1,7 +1,9 @@
-JD_LED	equ	6
-JD_TM 	equ	4
-JD_D 	equ	7
+JD_LED	equ	3
+JD_D 	equ	6
+JD_BTN 	equ	4
 
+JD_TM 	equ	7 // logging
+	
 frame_header_size equ 12
 crc_size equ 2
 payload_size equ 8
@@ -11,12 +13,15 @@ f_in_rx equ 0
 f_set_tx equ 1
 f_identify equ 2
 f_reset_in equ 3
+f_ev1 equ 4
+f_ev2 equ 5
 
 txp_announce equ 0
 txp_ack equ 1
 txp_streaming_samples equ 2
 txp_streaming_interval equ 3
 txp_reading equ 4
+txp_event equ 5
 
 pkt_addr equ 0x10
 
@@ -76,11 +81,32 @@ pkt_addr equ 0x10
 	BYTE	rx_data // this is overwritten during rx if packet too long (but that's fine)
 
 	BYTE    ack_crc_l, ack_crc_h
+	BYTE	t_sample
 
 	// so far:
 	// application is not using stack when IRQ enabled
 	// rx ISR can do up to 3
 	WORD	main_st[3]
+
+	BYTE ev_code
+	BYTE ev_cnt
+	BYTE t_ev
+
+	BYTE btn_down_l
+	BYTE btn_down_h
+	BYTE t_btn_hold
+
+#define JD_BUTTON_EV_DOWN 0x01
+#define JD_BUTTON_EV_UP 0x02
+#define JD_BUTTON_EV_HOLD 0x81
+
+
+.ev_check EXPAND
+	if (flags.f_ev1) {
+		.t16_chk t16_1ms, t_ev, <goto ev_flush>
+	}
+ENDM
+
 
 	// more data defined in rxserv.asm
 
@@ -100,11 +126,14 @@ main:
 	.rx_init
 
 pin_init:
+	PAPH.JD_BTN =   1 // pullup on btn
+
 	PAC.JD_LED 	= 	1 // output
 	PAC.JD_TM 	= 	1 // output
 
 	call t16_sync
 	.t16_set t16_262ms, t_announce, 2
+	goto do_sample
 
 loop:
 	disgint
@@ -130,6 +159,9 @@ loop:
 		.t16_chk t16_4us, t_tx, <goto try_tx>
 		goto loop // if tx is full, no point trying announce etc
 	}
+
+	.t16_chk t16_1ms, t_sample, <goto do_sample>
+	.ev_check
 
 	.sensor_stream
 	.t16_chk t16_262ms, t_announce, <goto do_announce>
@@ -195,6 +227,30 @@ prep_tx:
 		ret
 	}
 
+	if (tx_pending.txp_event) {
+		set0 tx_pending.txp_event
+
+		// compute duration
+		mov a, t16_1ms
+		sub a, btn_down_l
+		mov pkt_payload[0], a
+		mov a, t16_262ms
+		subc a, btn_down_h
+		mov pkt_payload[1], a
+
+		.mova pkt_size, 4
+		mov a, ev_code
+		mov pkt_service_command_l, a
+		if (a == JD_BUTTON_EV_DOWN) {
+			clear pkt_size // down event doesn't have payload
+		}
+		inc ev_cnt
+		mov a, ev_cnt
+		or a, 0x80
+		mov pkt_service_command_h, a
+		ret
+	}
+
 	// ~20 cycles until here + ~30 here
 	if (tx_pending.txp_announce) {
 		set0 tx_pending.txp_announce
@@ -221,3 +277,51 @@ prep_tx:
 // Module implementations
 	.t16_impl
 
+do_sample:
+	.t16_set t16_1ms, t_sample, 20
+	mov a, sensor_state[0]
+	ifset PA.JD_BTN
+		goto button1
+button0:
+	ifset ZF // state==0
+		goto loop // just keep going
+	clear sensor_state[0]
+	mov a, JD_BUTTON_EV_UP
+	goto ev_send
+button1:
+	ifset ZF
+		goto button_down
+	.t16_chk t16_1ms, t_btn_hold, <goto button_hold>
+	goto loop
+button_hold:
+	.t16_set t16_1ms, t_btn_hold, 100
+	mov a, JD_BUTTON_EV_HOLD
+	goto ev_send
+button_down:
+	.mova sensor_state[0], 1
+	disgint
+		.mova btn_down_l, t16_1ms
+		.mova btn_down_h, t16_262ms
+	engint
+	.t16_set t16_1ms, t_btn_hold, 100
+	mov a, JD_BUTTON_EV_DOWN
+	goto ev_send
+
+ev_flush:
+	set1 tx_pending.txp_event
+	if (flags.f_ev2) {
+		set0 flags.f_ev1
+		set0 flags.f_ev2
+		goto loop
+	}
+	set1 flags.f_ev2
+	.t16_set t16_1ms, t_ev, 100
+	goto loop
+	
+ev_send:
+	mov ev_code, a
+	set1 tx_pending.txp_event
+	set1 flags.f_ev1
+	set0 flags.f_ev2
+	.t16_set t16_1ms, t_ev, 20
+	goto loop
