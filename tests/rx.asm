@@ -2,12 +2,19 @@
 
 .rx_init MACRO
 	PAPH.JD_D = 1
-	$ TM2S 8BIT, /1, /1
+	call reset_tm2
 	TM2B = 64 // irq every 64 instructions, 8us
 	$ TM2C SYSCLK
-	INTRQ = 0x00
 	$ INTEN = TM2
 ENDM
+
+reset_tm2:
+	mov a, 0
+	mov TM2CT, a
+	mov INTRQ, a
+	$ TM2S 8BIT, /1, /1
+	set1 flags.f_set_tx
+	ret
 
 	// TODO we have about 14 instructions free here
 
@@ -135,9 +142,7 @@ no_ack_needed:
 not_interested:
 _do_leave:
 	set0 flags.f_in_rx
-	.mova TM2CT, 0
-	$ TM2S 8BIT, /1, /1
-	set1 flags.f_set_tx
+	call reset_tm2
 	popaf
 	reti
 

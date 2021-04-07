@@ -8,13 +8,14 @@ try_tx:
 	PA.JD_D = 0 // set lo
 	PAC.JD_D = 1 // set to output
 
-	.delay 90
+	.fill_id // uses isr0
 
 	PA.JD_D = 1
 
-	call prep_tx // ~20-~50 cycles
+	call reset_tm2
+	$ TM2S 8BIT, /1, /6 // ~50us
 
-	.fill_id // uses isr0
+	call prep_tx // ~20-~50 cycles
 
 	mov a, pkt_size
 	add a, 3+4 // add pkt-header size + round up to word
@@ -30,18 +31,25 @@ try_tx:
 	call get_id
 	mov crc_h, a
 
-	.mova memidx$0, pkt_addr+12
+	.mova memidx$0, pkt_addr+frame_header_size
 	mov a, frm_sz // len
 	call crc16 // uses isr0, isr1
 
-	.delay 150 // TODO - use t16 or tm2 to wait the right amount always
-
 	.mova memidx$0, pkt_addr
-	mov a, 12
+	mov a, frame_header_size+1
 	add a, frm_sz
 	mov tx_cntdown, a
+
+@@:
+	t1sn INTRQ.TM2
+	goto @b
+
 	goto _stop
 
+tx_not_last:
+	PA.JD_D = 0
+	mov a, 8
+	nop
 _nextbit:	
 	sr tx_data
 	ifset CF
@@ -63,18 +71,18 @@ _stop:
 	mov tx_data, a
 	inc memidx$0
 	PA.JD_D = 1
-	.delay 10
-	PA.JD_D = 0 // set lo
+	nop
+	nop
+	nop
+	nop
 	dzsn tx_cntdown
 		goto tx_not_last
+tx_last:
+	PA.JD_D = 0
 	.delay 90
 	PA.JD_D = 1
 	PAC.JD_D = 0 // set to input
 	PAPH.JD_D = 1
-	set1 flags.f_set_tx
+	call reset_tm2
 	engint
 	goto loop
-
-tx_not_last:
-	mov a, 8
-	goto _nextbit
