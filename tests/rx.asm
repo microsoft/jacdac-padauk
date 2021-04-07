@@ -26,6 +26,9 @@ interrupt:
 	PA.JD_TM = 1
 	PA.JD_TM = 0
 
+	// seed the PRNG with reception time of each packet
+	.rng_add_entropy
+
 	set1 flags.f_in_rx
 	$ TM2S 8BIT, /1, /17 // ~136us
 	.mova TM2CT, 0

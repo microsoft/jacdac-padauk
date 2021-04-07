@@ -27,6 +27,7 @@ pkt_addr equ 0x10
 
 .include utils.asm
 .include t16.asm
+.include rng.asm
 
 .CHIP   PFS154
 // Give package map to writer	pcount	VDD	PA0	PA3	PA4	PA5	PA6	PA7	GND	SHORTC_MSK1	SHORTC_MASK1	SHIFT
@@ -41,8 +42,8 @@ pkt_addr equ 0x10
 //}}PADAUK_CODE_OPTION
 
 	// possible program variable memory allocations (PMC150C)
-	//		srt	end
-	// 	BIT	0	16
+	//		   srt	end
+	// 	BIT	    0	16
 	//	WORD	0	30
 	//	BYTE	0	64
 
@@ -58,9 +59,11 @@ pkt_addr equ 0x10
 	BYTE    t_announce
 	BYTE    t_tx
 
-	BYTE	tmp0, tmp1
 	BYTE	crc_d
 	BYTE	isr1
+
+	WORD    t16_low
+	WORD    t16_high
 
 	.ramadr pkt_addr
 	BYTE	crc_l, crc_h
@@ -80,6 +83,7 @@ pkt_addr equ 0x10
 	BYTE	isr2
 	BYTE    crc_l0, crc_h0
 	BYTE    crc_l1, crc_h1
+	BYTE    rng_x
 
 	// so far:
 	// application code can use 1 word of stack
@@ -87,14 +91,10 @@ pkt_addr equ 0x10
 	// total: 4
 	WORD	main_st[6]
 
-	WORD    t16_low
-	WORD    t16_high
-
 	goto	main
 
 	.include rx.asm
 	.include crc16.asm
-	.include rng.asm
 	.include tx.asm
 
 main:
@@ -124,7 +124,7 @@ loop:
 
 	if (flags.f_set_tx) {
 		set0 flags.f_set_tx
-		call rng_next // uses tmp0
+		.rng_next
 		and a, 31
 		add a, 12
 		mov t_tx, a
@@ -212,6 +212,7 @@ prep_tx:
 			mov reset_cnt, a
 		.mova pkt_payload[0], reset_cnt
 		.mova pkt_payload[1], 0x01 // ACK-supported
+		// [2] and [3] already cleared
 		.mova pkt_payload[4], 0x63
 		.mova pkt_payload[5], 0xa2
 		.mova pkt_payload[6], 0x73
