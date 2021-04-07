@@ -98,6 +98,14 @@ timeout:
 	sub a, 2
 	mov SP, a
 leave_irq:
+    .check_id not_interested // uses isr0, isr1
+
+	// we have to check size before checking CRC
+	mov a, frm_sz
+	sub a, buffer_size-frame_header_size+1
+	ifclear CF
+	  goto pkt_error // it was a packet for us, but it was too large
+
 	// save crc_l/h for future comparison
 	.mova rx_data, crc_l
 	.mova isr2, crc_h
@@ -108,8 +116,6 @@ leave_irq:
 	mov a, frm_sz
 	add a, 10
 	call crc16 // uses isr0,1
-
-	call t16_sync
 
 	mov a, crc_l
 	ifneq a, rx_data
@@ -124,13 +130,7 @@ leave_irq:
 	ifset isr0.JD_FRAME_FLAG_VNEXT
 	  goto pkt_error
 
-    .check_id not_interested // uses isr0, isr1
-
-	mov a, frm_sz
-	sub a, buffer_size-frame_header_size+1
-	ifclear CF
-	  goto pkt_error // it was a packet for us, but it was too large
-
+	call t16_sync
 
 .include rxctrl.asm
 

@@ -79,6 +79,7 @@ _stop:
 	dzsn tx_cntdown
 		goto tx_not_last
 tx_last:
+	nop
 	PA.JD_D = 0
 	.delay 90
 	PA.JD_D = 1
