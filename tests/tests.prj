@@ -28,4 +28,4 @@ ICE=0 6 2 F0A
 ~rng.asm
 ~rx.asm
 ~tx.asm
-~$:INC_PDK\PFS154.INC
+~$:INC_PDK\PMS150C.INC

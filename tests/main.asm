@@ -29,16 +29,14 @@ pkt_addr equ 0x10
 .include t16.asm
 .include rng.asm
 
-.CHIP   PFS154
+.CHIP   PMS150C
 // Give package map to writer	pcount	VDD	PA0	PA3	PA4	PA5	PA6	PA7	GND	SHORTC_MSK1	SHORTC_MASK1	SHIFT
 //.writer package 		6, 	1, 	0,	4, 	27, 	25,	26, 	0,	28, 	0x0007, 	0x0007, 	0
 //{{PADAUK_CODE_OPTION
 	.Code_Option	Security	Disable		// Security 7/8 words Enable
 	.Code_Option	Bootup_Time	Fast
 	.Code_Option	Drive		Normal
-	.Code_Option	Comparator_Edge	All_Edge
-	.Code_Option	LCD2		Disable		// At ICE, LCD always disable, PB0 PA0/3/4 are independent pins
-	.Code_Option	LVR		3.5V
+	.Code_Option	LVR		3.0V
 //}}PADAUK_CODE_OPTION
 
 	// possible program variable memory allocations (PMC150C)
@@ -93,7 +91,7 @@ pkt_addr equ 0x10
 	.include tx.asm
 
 main:
-	.ADJUST_IC	SYSCLK=IHRC/2, IHRC=16MHz, VDD=3.85V
+	.ADJUST_IC	SYSCLK=IHRC/2, IHRC=16MHz, VDD=3.3V
 	SP	=	main_st
 
 	.clear_memory

@@ -7,8 +7,8 @@
 	mov a, t16_v
 	sub a, tim
 	and a, 0x80
-	cneqsn a, 0x00
-	handler
+	ifset ZF
+		handler
 ENDM
 
 .t16_set MACRO t16_v, tim, num
