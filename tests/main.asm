@@ -55,7 +55,6 @@ pkt_addr equ 0x10
 	BYTE    reset_cnt
 	BYTE    rng_x
 
-	BYTE    ack_crc_l, ack_crc_h
 	BYTE    t_reset
 	BYTE    t_announce
 	BYTE    t_tx
@@ -77,6 +76,8 @@ pkt_addr equ 0x10
 	BYTE	pkt_service_command_h
 	BYTE	pkt_payload[payload_size]
 	BYTE	rx_data // this is overwritten during rx if packet too long (but that's fine)
+
+	BYTE    ack_crc_l, ack_crc_h
 
 	// so far:
 	// application is not using stack when IRQ enabled

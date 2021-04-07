@@ -40,7 +40,7 @@ This has period of 255 (so  we just exclude 0)
 	mov a, rng_x
 	ifset ZF // this can happen when we "add entropy"
 		mov a, 42
-	sl x
+	sl rng_x
 	xor rng_x, a
 	mov a, rng_x
 	sr a

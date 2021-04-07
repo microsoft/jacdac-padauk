@@ -87,7 +87,7 @@ timeout:
 	mov SP, a
 leave_irq:
 	// save crc_l/h for future comparison
-	.mova rx_byte, crc_l
+	.mova rx_data, crc_l
 	.mova isr2, crc_h
 	mov a, 0xff
 	mov crc_l, a
@@ -100,7 +100,7 @@ leave_irq:
 	call t16_sync
 
 	mov a, crc_l
-	ifneq a, rx_byte
+	ifneq a, rx_data
 	  goto pkt_error
 	mov a, crc_h
 	ifneq a, isr2
