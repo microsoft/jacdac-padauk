@@ -244,7 +244,6 @@ prep_tx:
 		if (a == JD_BUTTON_EV_DOWN) {
 			clear pkt_size // down event doesn't have payload
 		}
-		inc ev_cnt
 		mov a, ev_cnt
 		or a, 0x80
 		mov pkt_service_command_h, a
@@ -280,15 +279,15 @@ prep_tx:
 do_sample:
 	.t16_set t16_1ms, t_sample, 20
 	mov a, sensor_state[0]
-	ifset PA.JD_BTN
-		goto button1
-button0:
+	ifclear PA.JD_BTN
+		goto button_active
+button_inactive:
 	ifset ZF // state==0
 		goto loop // just keep going
 	clear sensor_state[0]
 	mov a, JD_BUTTON_EV_UP
 	goto ev_send
-button1:
+button_active:
 	ifset ZF
 		goto button_down
 	.t16_chk t16_1ms, t_btn_hold, <goto button_hold>
@@ -320,6 +319,7 @@ ev_flush:
 	
 ev_send:
 	mov ev_code, a
+	inc ev_cnt
 	set1 tx_pending.txp_event
 	set1 flags.f_ev1
 	set0 flags.f_ev2
