@@ -25,12 +25,18 @@
 			ifneq a, 0
 				goto streaming_int_ovf
 			mov a, pkt_payload[0]
+			and a, 0xf0
+			ifset ZF
+				goto streaming_int_undf
 			sl a
 			ifset CF
 				goto streaming_int_ovf
 			mov a, pkt_payload[0]
 			goto streaming_int_set
 
+		streaming_int_undf:
+			mov a, 16
+			goto streaming_int_set
 		streaming_int_ovf:
 			mov a, 127
 		streaming_int_set:

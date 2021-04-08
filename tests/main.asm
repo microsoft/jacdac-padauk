@@ -132,6 +132,8 @@ pin_init:
 	PAC.JD_LED 	= 	1 // output
 	PAC.JD_TM 	= 	1 // output
 
+	.mova streaming_interval, 20
+
 	call t16_sync
 	.t16_set t16_16ms, t_announce, 31
 	goto do_sample
