@@ -139,6 +139,9 @@ pin_init:
 	goto do_sample
 
 loop:
+	if (PAC.JD_D) {
+		nop
+	}
 	disgint
 	call t16_sync
 	engint

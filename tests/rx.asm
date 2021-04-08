@@ -47,9 +47,9 @@ interrupt:
 	.mova memidx$0, pkt_addr
 	.mova rx_buflimit, buffer_size+1
 
+	clear frm_sz // make sure packet is invalid, if we do not recv anything
 	mov a, 0
 	goto rx_wait_start
-
 
     .include devid.asm
 

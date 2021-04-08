@@ -4,7 +4,7 @@
 try_tx:
 	disgint
 	ifclear PA.JD_D
-	  goto interrupt // we got conflict on initial break - try rx in irq handler
+	  call interrupt // we got conflict on initial break - try rx in irq handler
 	PA.JD_D = 0 // set lo
 	PAC.JD_D = 1 // set to output
 
