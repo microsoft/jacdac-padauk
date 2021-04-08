@@ -46,10 +46,10 @@ get_id:
 
 	// note that these two CRCs always differ by XOR 0xe77e regardless of device id
 	// this can possibly be used in future to only store one of them
-	ret 0x16 // crc of 0400 0123456780abcdef
-	ret 0x2e
-	ret 0xf1 // crc of 0800 0123456780abcdef
-	ret 0x50
-	ret 0x65 // crc of 0c00 ...
-	ret 0x5c
+	ret 0x59 // crc of 0400 0123456789abcdef
+	ret 0xe5
+	ret 0x27 // crc of 0800 0123456789abcdef
+	ret 0x02
+	ret 0x12 // crc of 0c00 0123456789abcdef
+	ret 0xaf
 .ENDIF
