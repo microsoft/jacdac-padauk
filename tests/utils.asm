@@ -24,10 +24,19 @@ ENDM
 
 .disint MACRO
 	// apparently when you get INT during disgint execution, it may not work
-	// the builtin macro .disgint doesn't seem to do anything
-	disgint
-	disgint
+	.disgint
 ENDM
+
+.assert_not MACRO cond
+	ifset cond
+		call panic
+ENDM
+
+.assert MACRO cond
+	ifclear cond
+		call panic
+ENDM
+
 
 /*
 The if* macros below are used to resemble 'if' statements:

@@ -1,10 +1,14 @@
 #define tx_data isr1
 #define tx_cntdown isr2
 
+switch_to_rx:
+	call interrupt
+	goto loop
+
 try_tx:
 	.disint
 	ifclear PA.JD_D
-	  call interrupt // we got conflict on initial break - try rx in irq handler
+		goto switch_to_rx
 	PA.JD_D = 0 // set lo
 	PAC.JD_D = 1 // set to output
 

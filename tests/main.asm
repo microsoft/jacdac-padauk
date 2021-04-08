@@ -139,9 +139,7 @@ pin_init:
 	goto do_sample
 
 loop:
-	if (PAC.JD_D) {
-		nop
-	}
+	.assert_not PAC.JD_D // we should be in input mode here
 	.disint
 	call t16_sync
 	engint
@@ -172,6 +170,10 @@ loop:
 	.sensor_stream
 	.t16_chk t16_16ms, t_announce, <goto do_announce>
 	goto loop
+
+panic:
+	nop
+	goto panic
 
 do_announce:
 	.t16_set t16_16ms, t_announce, 31
