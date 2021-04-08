@@ -142,7 +142,7 @@ loop:
 	if (PAC.JD_D) {
 		nop
 	}
-	disgint
+	.disint
 	call t16_sync
 	engint
 
@@ -311,7 +311,7 @@ button_hold:
 	goto ev_send
 button_down:
 	.mova sensor_state[0], 1
-	disgint
+	.disint
 		.mova btn_down_l, t16_1ms
 		.mova btn_down_h, t16_262ms
 	engint

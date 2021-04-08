@@ -84,7 +84,7 @@
 	.t16_chk t16_1ms, t_streaming, <goto do_stream>
 	goto skip_stream
 do_stream:
-	disgint
+	.disint
 		mov a, streaming_samples
 		ifclear ZF
 			dec streaming_samples

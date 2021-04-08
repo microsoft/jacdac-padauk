@@ -2,7 +2,7 @@
 #define tx_cntdown isr2
 
 try_tx:
-	disgint
+	.disint
 	ifclear PA.JD_D
 	  call interrupt // we got conflict on initial break - try rx in irq handler
 	PA.JD_D = 0 // set lo

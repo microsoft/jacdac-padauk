@@ -22,6 +22,13 @@ clear_loop:
 	goto clear_loop
 ENDM
 
+.disint MACRO
+	// apparently when you get INT during disgint execution, it may not work
+	// the builtin macro .disgint doesn't seem to do anything
+	disgint
+	disgint
+ENDM
+
 /*
 The if* macros below are used to resemble 'if' statements:
 
