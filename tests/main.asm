@@ -38,7 +38,7 @@ pkt_addr equ 0x10
 // Give package map to writer	pcount	VDD	PA0	PA3	PA4	PA5	PA6	PA7	GND	SHORTC_MSK1	SHORTC_MASK1	SHIFT
 //.writer package 		6, 	1, 	0,	4, 	27, 	25,	26, 	0,	28, 	0x0007, 	0x0007, 	0
 //{{PADAUK_CODE_OPTION
-	.Code_Option	Security	Disable		// Security 7/8 words Enable
+	.Code_Option	Security	Disable
 	.Code_Option	Bootup_Time	Fast
 	.Code_Option	Drive		Normal
 	.Code_Option	LVR		3.0V
@@ -58,10 +58,10 @@ pkt_addr equ 0x10
 	BYTE    reset_cnt
 	BYTE    rng_x
 
-	BYTE    t_reset
 	BYTE    t_announce
 	BYTE    t_tx
 
+	BYTE	t16_16ms
 	WORD    t16_low
 	WORD    t16_high
 
@@ -88,6 +88,8 @@ pkt_addr equ 0x10
 	// rx ISR can do up to 3
 	WORD	main_st[3]
 
+	BYTE    t_reset
+
 	BYTE ev_code
 	BYTE ev_cnt
 	BYTE t_ev
@@ -99,7 +101,6 @@ pkt_addr equ 0x10
 #define JD_BUTTON_EV_DOWN 0x01
 #define JD_BUTTON_EV_UP 0x02
 #define JD_BUTTON_EV_HOLD 0x81
-
 
 .ev_check EXPAND
 	if (flags.f_ev1) {
@@ -132,7 +133,7 @@ pin_init:
 	PAC.JD_TM 	= 	1 // output
 
 	call t16_sync
-	.t16_set t16_262ms, t_announce, 2
+	.t16_set t16_16ms, t_announce, 31
 	goto do_sample
 
 loop:
@@ -164,11 +165,11 @@ loop:
 	.ev_check
 
 	.sensor_stream
-	.t16_chk t16_262ms, t_announce, <goto do_announce>
+	.t16_chk t16_16ms, t_announce, <goto do_announce>
 	goto loop
 
 do_announce:
-	.t16_set t16_262ms, t_announce, 2
+	.t16_set t16_16ms, t_announce, 31
 	set1 tx_pending.txp_announce
 	goto loop
 
@@ -230,20 +231,25 @@ prep_tx:
 	if (tx_pending.txp_event) {
 		set0 tx_pending.txp_event
 
-		// compute duration
-		mov a, t16_1ms
-		sub a, btn_down_l
-		mov pkt_payload[0], a
-		mov a, t16_262ms
-		subc a, btn_down_h
-		mov pkt_payload[1], a
-
 		.mova pkt_size, 4
 		mov a, ev_code
 		mov pkt_service_command_l, a
 		if (a == JD_BUTTON_EV_DOWN) {
 			clear pkt_size // down event doesn't have payload
+		} else if (a == JD_BUTTON_EV_UP) {
+			// we snapshot final duration when emitting up
+			.mova pkt_payload[0], btn_down_l
+			.mova pkt_payload[1], btn_down_h
+		} else {
+			// hold events have duration computed on the fly
+			mov a, t16_1ms
+			sub a, btn_down_l
+			mov pkt_payload[0], a
+			mov a, t16_262ms
+			subc a, btn_down_h
+			mov pkt_payload[1], a
 		}
+
 		mov a, ev_cnt
 		or a, 0x80
 		mov pkt_service_command_h, a
@@ -285,15 +291,23 @@ button_inactive:
 	ifset ZF // state==0
 		goto loop // just keep going
 	clear sensor_state[0]
+		// snapshot duration
+		mov a, t16_1ms
+		sub a, btn_down_l
+		mov btn_down_l, a
+		mov a, t16_262ms
+		subc a, btn_down_h
+		mov btn_down_h, a
+
 	mov a, JD_BUTTON_EV_UP
 	goto ev_send
 button_active:
 	ifset ZF
 		goto button_down
-	.t16_chk t16_1ms, t_btn_hold, <goto button_hold>
+	.t16_chk t16_16ms, t_btn_hold, <goto button_hold>
 	goto loop
 button_hold:
-	.t16_set t16_1ms, t_btn_hold, 100
+	.t16_set t16_16ms, t_btn_hold, 31
 	mov a, JD_BUTTON_EV_HOLD
 	goto ev_send
 button_down:
@@ -302,7 +316,7 @@ button_down:
 		.mova btn_down_l, t16_1ms
 		.mova btn_down_h, t16_262ms
 	engint
-	.t16_set t16_1ms, t_btn_hold, 100
+	.t16_set t16_16ms, t_btn_hold, 31
 	mov a, JD_BUTTON_EV_DOWN
 	goto ev_send
 

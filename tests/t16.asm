@@ -17,7 +17,7 @@ ENDM
 	mov tim, a
 ENDM
 
-.t16_init MACRO
+.t16_init EXPAND
 t16_init_:
 	stt16 t16_low
 	$ INTEGS BIT_F // falling edge on T16
@@ -25,13 +25,21 @@ t16_init_:
 ENDM
 
 
-.t16_impl MACRO
+.t16_impl EXPAND
 t16_sync:
 	ldt16 t16_low
-	ifclear INTRQ.T16
-	  ret
-	INTRQ.T16 = 0
-	inc t16_high$0
-	addc t16_high$1
+	if (INTRQ.T16) {
+		INTRQ.T16 = 0
+		inc t16_262ms
+		addc t16_67s
+	}
+	mov a, t16_1ms
+	swap a
+	and a, 0x0f
+	mov t16_16ms, a
+	mov a, t16_262ms
+	swap a
+	and a, 0xf0
+	or t16_16ms, a
 	ret
 ENDM
