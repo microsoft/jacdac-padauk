@@ -174,13 +174,7 @@ do_announce:
 	goto loop
 
 .setcmd MACRO x, y
-.ifidni x, JD_HIGH_REG_RO_GET
-.ifz x
-	clear pkt_service_command_h
-.else
 	.mova pkt_service_command_h, x
-.endif
-.endif
 	.mova pkt_service_command_l, y
 ENDM
 

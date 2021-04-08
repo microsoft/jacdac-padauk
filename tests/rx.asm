@@ -125,7 +125,7 @@ leave_irq:
 	  goto pkt_error
 
 	.mova isr0, frm_flags
-	ifclear isr0.JD_FRAME_FLAG_COMMAND
+	ifset isr0.JD_FRAME_FLAG_COMMAND
 	  goto not_interested // this is a report
 	ifset isr0.JD_FRAME_FLAG_VNEXT
 	  goto pkt_error
