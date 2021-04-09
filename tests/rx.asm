@@ -28,8 +28,7 @@ interrupt:
 
 	pushaf
 
-	PA.JD_TM = 1
-	PA.JD_TM = 0
+	.pulse_log
 
 	// seed the PRNG with reception time of each packet
 	.rng_add_entropy
@@ -57,12 +56,12 @@ rx_start:
 	mov TM2CT, a
 	$ TM2S 8BIT, /1, /2	 // 2T
 	clear rx_data
-	PA.JD_TM = 1
+	nop
 	mov a, 0x01
 rx_next_bit:
 	ifset PA.JD_D
 		or rx_data, a
-	PA.JD_TM = 0
+	nop
 	sl a
 	nop
 	ceqsn a, 0x80
@@ -90,7 +89,6 @@ rx_wait_start:
 
 timeout:
 	PA.JD_LED = 1
-	PA.JD_LED = 0
 
 	// this is nested IRQ; we want to return to original code, not outer interrupt
 	// TODO: try fake popaf
@@ -133,6 +131,7 @@ leave_irq:
 	// sync the timer before packet processing - it may need the current value
 	call t16_sync
 
+
 .include rxctrl.asm
 
 	ifclear isr0.JD_FRAME_FLAG_ACK_REQUESTED
@@ -152,11 +151,12 @@ _do_leave:
 	set0 flags.f_in_rx
 	call reset_tm2
 	popaf
+	PA.JD_LED = 0
 	reti
 
 pkt_overflow:
 pkt_invalid:
 pkt_error:
-	PA.JD_TM = 1
-	PA.JD_TM = 0
+	.pulse_log
+	.pulse_log
 	goto _do_leave

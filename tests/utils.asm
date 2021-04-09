@@ -37,6 +37,14 @@ ENDM
 		call panic
 ENDM
 
+.set_log MACRO v
+	PA.JD_TM = v
+ENDM
+
+.pulse_log MACRO
+	.set_log 1
+	.set_log 0
+ENDM
 
 /*
 The if* macros below are used to resemble 'if' statements:
