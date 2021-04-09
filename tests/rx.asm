@@ -130,6 +130,7 @@ leave_irq:
 	ifset isr0.JD_FRAME_FLAG_VNEXT
 	  goto pkt_error
 
+	// sync the timer before packet processing - it may need the current value
 	call t16_sync
 
 .include rxctrl.asm
@@ -146,6 +147,8 @@ no_ack_needed:
 
 not_interested:
 _do_leave:
+	// sync the timer, in case we interrupted the main loop just before it checks for f_set_tx
+	call t16_sync
 	set0 flags.f_in_rx
 	call reset_tm2
 	popaf
@@ -157,4 +160,3 @@ pkt_error:
 	PA.JD_TM = 1
 	PA.JD_TM = 0
 	goto _do_leave
-

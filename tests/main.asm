@@ -60,6 +60,7 @@ pkt_addr equ 0x10
 	BYTE    rng_x
 
 	BYTE    t_tx
+	BYTE    ack_crc_l, ack_crc_h
 
 	BYTE	t16_16ms
 	WORD    t16_low
@@ -80,7 +81,6 @@ pkt_addr equ 0x10
 	BYTE	pkt_payload[payload_size]
 	BYTE	rx_data // this is overwritten during rx if packet too long (but that's fine)
 
-	BYTE    ack_crc_l, ack_crc_h
 	BYTE	t_sample
 
 	// so far:
@@ -173,13 +173,12 @@ loop:
 	mov a, tx_pending
 	if (!ZF) {
 		.t16_chk t16_4us, t_tx, <goto try_tx>
-		goto loop // if tx is full, no point trying announce etc
 	}
 
 	.t16_chk t16_1ms, t_sample, <goto do_sample>
 	.ev_check
-
 	.sensor_stream
+
 	goto loop
 
 panic:

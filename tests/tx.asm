@@ -7,6 +7,12 @@ switch_to_rx:
 
 try_tx:
 	.disint
+	// if f_set_tx is set, it means there was a reception interrupt very recently
+	// in that case we shall try tx later
+	if (flags.f_set_tx) {
+		engint
+		goto loop
+	}
 	ifclear PA.JD_D
 		goto switch_to_rx
 	PA.JD_D = 0 // set lo
