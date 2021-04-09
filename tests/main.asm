@@ -15,6 +15,8 @@ f_identify equ 2
 f_reset_in equ 3
 f_ev1 equ 4
 f_ev2 equ 5
+f_announce_t16_bit equ 6
+f_announce_rst_cnt_max equ 7
 
 txp_announce equ 0
 txp_ack equ 1
@@ -55,10 +57,8 @@ pkt_addr equ 0x10
 	BYTE    flags
 	BYTE    tx_pending
 	BYTE	isr0, isr1, isr2
-	BYTE    reset_cnt
 	BYTE    rng_x
 
-	BYTE    t_announce
 	BYTE    t_tx
 
 	BYTE	t16_16ms
@@ -134,8 +134,9 @@ pin_init:
 
 	.mova streaming_interval, 20
 
+	// TODO add random delay here, so that not all modules start at once?
+
 	call t16_sync
-	.t16_set t16_16ms, t_announce, 31
 	goto do_sample
 
 loop:
@@ -143,6 +144,17 @@ loop:
 	.disint
 	call t16_sync
 	engint
+
+	// this sends first announce after 263ms, and each subsequent one every 526ms
+	if (flags.f_announce_t16_bit) {
+		ifclear t16_262ms.0
+			set0 flags.f_announce_t16_bit
+	} else {
+		if (t16_262ms.0) {
+			set1 flags.f_announce_t16_bit
+			set1 tx_pending.txp_announce
+		}
+	}
 
 	if (flags.f_reset_in) {
 		.t16_chk t16_262ms, t_reset, reset
@@ -168,17 +180,11 @@ loop:
 	.ev_check
 
 	.sensor_stream
-	.t16_chk t16_16ms, t_announce, <goto do_announce>
 	goto loop
 
 panic:
 	nop
 	goto panic
-
-do_announce:
-	.t16_set t16_16ms, t_announce, 31
-	set1 tx_pending.txp_announce
-	goto loop
 
 .setcmd MACRO x, y
 	.mova pkt_service_command_h, x
@@ -261,11 +267,15 @@ prep_tx:
 	if (tx_pending.txp_announce) {
 		set0 tx_pending.txp_announce
 		// reset_cnt maxes out at 0xf	
-		mov a, 0xf
-		inc reset_cnt
-		ifset reset_cnt.4
-			mov reset_cnt, a
-		.mova pkt_payload[0], reset_cnt
+		mov a, t16_262ms
+		sr a
+		add a, 1
+		and a, 0xf
+		ifset ZF
+			set1 flags.f_announce_rst_cnt_max
+		ifset flags.f_announce_rst_cnt_max
+			mov a, 0xf
+		mov pkt_payload[0], a
 		.mova pkt_payload[1], 0x01 // ACK-supported
 		// [2] and [3] already cleared
 		.mova pkt_payload[4], 0x63
