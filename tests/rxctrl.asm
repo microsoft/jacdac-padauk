@@ -20,6 +20,18 @@
 		if (a == JD_CONTROL_CMD_RESET) {
 			reset
 		}
+		if (a == JD_CONTROL_CMD_SET_STATUS_LIGHT) {
+			// first turn off LED
+			set0 blink.blink_status_on
+			// if any of rgb is non-zero
+			mov a, pkt_payload[0]
+			or a, pkt_payload[1]
+			or a, pkt_payload[2]
+			ifclear ZF
+				// we enable LED
+				set1 blink.blink_status_on
+			goto rx_process_end
+		}
 		if (a == JD_CONTROL_CMD_IDENTIFY) {
 			.mova blink, 0x0f
 		}
