@@ -21,7 +21,7 @@
 			reset
 		}
 		if (a == JD_CONTROL_CMD_IDENTIFY) {
-			set1 flags.f_identify
+			.mova blink, 0x0f
 		}
 
 		goto rx_process_end

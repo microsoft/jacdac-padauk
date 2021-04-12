@@ -11,12 +11,17 @@ buffer_size equ (frame_header_size + 4 + payload_size)
 
 f_in_rx equ 0
 f_set_tx equ 1
-f_identify equ 2
+// f_identify equ 2
 f_reset_in equ 3
 f_ev1 equ 4
 f_ev2 equ 5
 f_announce_t16_bit equ 6
 f_announce_rst_cnt_max equ 7
+
+blink_identify equ 3
+blink_identify_was0 equ 4
+blink_disconnected equ 5
+blink_status_on equ 6
 
 txp_announce equ 0
 txp_ack equ 1
@@ -27,10 +32,14 @@ txp_event equ 5
 
 pkt_addr equ 0x10
 
-#define JD_FRAME_FLAG_COMMAND 1
-#define JD_FRAME_FLAG_ACK_REQUESTED 2
-#define JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS 3
+#define JD_FRAME_FLAG_COMMAND 0
+#define JD_FRAME_FLAG_ACK_REQUESTED 1
+#define JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS 2
 #define JD_FRAME_FLAG_VNEXT 7
+
+#define JD_AD0_IS_CLIENT_MSK 0x08
+
+
 
 .include utils.asm
 .include t16.asm
@@ -59,7 +68,7 @@ pkt_addr equ 0x10
 	BYTE	isr0, isr1, isr2
 	BYTE    rng_x
 
-	BYTE    t_tx
+	BYTE    blink
 	BYTE    ack_crc_l, ack_crc_h
 
 	BYTE	t16_16ms
@@ -82,6 +91,7 @@ pkt_addr equ 0x10
 	BYTE	rx_data // this is overwritten during rx if packet too long (but that's fine)
 
 	BYTE	t_sample
+	BYTE    t_tx
 
 	// so far:
 	// application is not using stack when IRQ enabled
@@ -144,6 +154,8 @@ loop:
 	.disint
 	call t16_sync
 	engint
+
+	.check_blink
 
 	// this sends first announce after 263ms, and each subsequent one every 526ms
 	if (flags.f_announce_t16_bit) {
