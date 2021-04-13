@@ -81,53 +81,35 @@ prep_tx:
 		ret
 	}
 
-.ev_prep_tx EXPAND
-	if (tx_pending.txp_event) {
-		set0 tx_pending.txp_event
+	.serv_prep_tx
 
-		.mova pkt_size, 4
-		mov a, ev_code
-		mov pkt_service_command_l, a
-		if (a == JD_BUTTON_EV_DOWN) {
-			clear pkt_size // down event doesn't have payload
-		} else if (a == JD_BUTTON_EV_UP) {
-			// we snapshot final duration when emitting up
-			.mova pkt_payload[0], btn_down_l
-			.mova pkt_payload[1], btn_down_h
-		} else {
-			// hold events have duration computed on the fly
-			mov a, t16_1ms
-			sub a, btn_down_l
-			mov pkt_payload[0], a
-			mov a, t16_262ms
-			subc a, btn_down_h
-			mov pkt_payload[1], a
-		}
-
-		mov a, ev_cnt
-		or a, 0x80
-		mov pkt_service_command_h, a
+	// ~20 cycles until here + ~30 here
+	if (tx_pending.txp_announce) {
+		set0 tx_pending.txp_announce
+		// reset_cnt maxes out at 0xf	
+		mov a, t16_262ms
+		sr a
+		add a, 1
+		and a, 0xf
+		ifset ZF
+			set1 flags.f_announce_rst_cnt_max
+		ifset flags.f_announce_rst_cnt_max
+			mov a, 0xf
+		mov pkt_payload[0], a
+		.mova pkt_payload[1], 0x01 // ACK-supported
+		// [2] and [3] already cleared
+		.forc x, <0123>
+		mov a, (SERVICE_CLASS >> (x * 8)) & 0xff
+		mov pkt_payload[x+4], a
+		.endm
+		.mova pkt_size, 8
+		clear pkt_service_number
+		clear pkt_service_command_l
+		clear pkt_service_command_h
 		ret
 	}
-ENDM
+
+	ret
 
 
-ev_flush:
-	set1 tx_pending.txp_event
-	if (flags.f_ev2) {
-		set0 flags.f_ev1
-		set0 flags.f_ev2
-		goto loop
-	}
-	set1 flags.f_ev2
-	.t16_set t16_1ms, t_ev, 100
-	goto loop
-	
-ev_send:
-	mov ev_code, a
-	inc ev_cnt
-	set1 tx_pending.txp_event
-	set1 flags.f_ev1
-	set0 flags.f_ev2
-	.t16_set t16_1ms, t_ev, 20
-	goto loop
+	.t16_impl

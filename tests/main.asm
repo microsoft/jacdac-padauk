@@ -21,5 +21,6 @@ JD_TM 	equ	7 // logging
 
 main:
 	.ADJUST_IC	SYSCLK=IHRC/2, IHRC=16MHz, VDD=3.3V
+	SP = main_st
 
 .include jdmain.asm

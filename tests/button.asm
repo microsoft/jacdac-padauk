@@ -22,7 +22,7 @@ ENDM
 	.sensor_process
 ENDM
 
-.serv_prep_tx EXPAND
+.serv_prep_tx MACRO
 	.ev_prep_tx
 	.sensor_prep_tx
 ENDM
