@@ -1,13 +1,4 @@
-#define JD_HIGH_CMD 0x00
-#define JD_HIGH_REG_RW_SET 0x20
-#define JD_HIGH_REG_RW_GET 0x10
-#define JD_HIGH_REG_RO_GET 0x11
 
-#define JD_CONTROL_CMD_IDENTIFY 0x81
-#define JD_CONTROL_CMD_RESET 0x82
-#define JD_CONTROL_CMD_SET_STATUS_LIGHT 0x84
-
-#define JD_CONTROL_REG_RW_RESET_IN 0x80
 
 	mov a, pkt_service_number
 	ifneq a, 0
@@ -63,8 +54,7 @@
 not_ctrl:
 	ifneq a, 1
 		goto not_serv1
-
-.include rxserv.asm
+	goto serv_rx
 
 not_serv1:
 rx_process_end:

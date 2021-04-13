@@ -1,15 +1,10 @@
-#define JD_REG_RW_STREAMING_SAMPLES 0x03
-#define JD_REG_RW_STREAMING_INTERVAL 0x04
-
-#define JD_REG_RO_READING 0x01
-
-#define SENSOR_SIZE 1
 
 	BYTE streaming_samples
 	BYTE streaming_interval
 	BYTE t_streaming
 	BYTE sensor_state[SENSOR_SIZE]
 
+.sensor_rx EXPAND
 	mov a, pkt_service_command_h
 
 	if (a == JD_HIGH_REG_RW_SET) {
@@ -76,8 +71,9 @@
 	}
 
 	goto rx_process_end
+ENDM
 
-.sensor_stream EXPAND
+.sensor_process EXPAND
 	mov a, streaming_samples
 	ifset ZF
 	  goto skip_stream
@@ -94,3 +90,34 @@ do_stream:
 	goto loop
 skip_stream:
 ENDM
+
+.sensor_prep_tx EXPAND
+	if (tx_pending.txp_streaming_samples) {
+		set0 tx_pending.txp_streaming_samples
+		.setcmd JD_HIGH_REG_RW_GET, JD_REG_RW_STREAMING_SAMPLES
+		.mova pkt_payload[0], streaming_samples
+		.mova pkt_size, 1
+		ret
+	}
+
+	if (tx_pending.txp_streaming_interval) {
+		set0 tx_pending.txp_streaming_interval
+		.setcmd JD_HIGH_REG_RW_GET, JD_REG_RW_STREAMING_INTERVAL
+		.mova pkt_payload[0], streaming_interval
+		.mova pkt_size, 4
+		ret
+	}
+
+	if (tx_pending.txp_reading) {
+		set0 tx_pending.txp_reading
+		_cnt => 0
+	.repeat SENSOR_SIZE
+		.mova pkt_payload[_cnt], sensor_state[_cnt]
+		_cnt => _cnt + 1
+	.endm
+		.mova pkt_size, SENSOR_SIZE
+		.setcmd JD_HIGH_REG_RO_GET, JD_REG_RO_READING
+		ret
+	}
+ENDM
+

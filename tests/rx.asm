@@ -8,50 +8,6 @@
 	$ INTEN = TM2
 ENDM
 
-.check_blink EXPAND
-	PA.JD_LED = 0
-	if (blink.blink_identify) {
-		if (!blink.blink_identify_was0) {
-			ifclear t16_16ms.6
-				set1 blink.blink_identify_was0
-		} else {
-			PA.JD_LED = 1
-			if (t16_16ms.6) {
-				dec blink
-				set0 blink.blink_identify_was0
-				if (!blink.blink_identify) {
-					.disint
-					call got_client_announce
-					engint
-				}
-			}
-		}
-	} else {
-		if (t16_262ms.3) {
-			set0 blink.blink_identify_was0
-		} else {
-			if (!blink.blink_identify_was0) {
-				set1 blink.blink_identify_was0
-				set0 blink.blink_status_on
-			}
-		}
-		if (blink.blink_disconnected) {
-			ifset t16_262ms.2
-				PA.JD_LED = 1
-		} else {
-			mov a, t16_262ms
-			sr a
-			sub a, blink
-			and a, 0x02
-			ifclear ZF
-				set1 blink.blink_disconnected
-			if (blink.blink_status_on) {
-				PA.JD_LED = 1
-			}
-		}
-	}
-ENDM
-
 reset_tm2:
 	mov a, 0
 	mov TM2CT, a
@@ -148,28 +104,9 @@ timeout:
 	mov a, SP
 	sub a, 2
 	mov SP, a
+
 leave_irq:
-	// this checks for announce packets
-	// note that we do that before checking for size or CRC - the announce from the client may be bigger than we support
-	// however, the flag bits we're interested in are at the beginning
-	mov a, frm_flags
-	// if any of these flags is set, we don't want it
-	and a, (1 << JD_FRAME_FLAG_VNEXT)|(1 << JD_FRAME_FLAG_COMMAND)|(1 << JD_FRAME_FLAG_ACK_REQUESTED)|(1 << JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS)
-	// service number and cmd must be all 0
-	or a, pkt_service_number
-	or a, pkt_service_command_h
-	or a, pkt_service_command_l
-	if (ZF) {
-		mov a, pkt_payload[1]
-		and a, JD_AD0_IS_CLIENT_MSK
-		if (!ZF) {
-			call got_client_announce
-			PA.JD_LED = 1
-			.delay 250
-			PA.JD_LED = 0
-			goto _do_leave
-		}
-	}
+	.blink_rx
 
 	mov a, frm_flags
 	and a, (1 << JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS)
@@ -217,19 +154,16 @@ leave_irq:
 	ifset isr0.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
 		mov pkt_service_number, a
 
-	// sync the timer before packet processing - it may need the current value
-	call t16_sync
-
-
-.include rxctrl.asm
-
 	if (isr0.JD_FRAME_FLAG_ACK_REQUESTED) {
 		set1 tx_pending.txp_ack
 		.mova ack_crc_l, crc_l
 		.mova ack_crc_h, crc_h
 	}
 
-// JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
+	// sync the timer before packet processing - it may need the current value
+	call t16_sync
+
+.include rxctrl.asm
 
 not_interested:
 _do_leave:
