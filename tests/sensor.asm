@@ -1,4 +1,8 @@
 
+txp_streaming_samples equ 3
+txp_streaming_interval equ 4
+txp_reading equ 5
+
 	BYTE streaming_samples
 	BYTE streaming_interval
 	BYTE t_streaming

@@ -100,16 +100,11 @@ leave_irq:
 
 	mov a, frm_flags
 	and a, (1 << JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS)
-	if (ZF) {
-    	.check_id not_interested // uses isr0, isr1
-	} else {
-		.forc x, <0123>
-		mov a, pkt_device_id[x]
-		ifneq a, (SERVICE_CLASS >> (x * 8)) & 0xff
-			goto not_interested
-		.endm
-	}
+	ifclear ZF
+		goto check_service_class 
+    .check_id not_interested // uses isr0, isr1
 
+check_size:
 	// we have to check size before checking CRC
 	mov a, frm_sz
 	sub a, buffer_size-frame_header_size+1

@@ -1,19 +1,20 @@
+#define SERVICE_CLASS 0x1473a263
 #define SENSOR_SIZE 1
 
 	.include sensor.asm
-	.include events.asm
 
 #define JD_BUTTON_EV_DOWN 0x01
 #define JD_BUTTON_EV_UP 0x02
 #define JD_BUTTON_EV_HOLD 0x81
 
 	BYTE	t_sample
+	BYTE    t_btn_hold
 	BYTE    btn_down_l
 	BYTE    btn_down_h
-	BYTE    t_btn_hold
 
 .serv_init EXPAND
 	PAPH.JD_BTN =   1 // pullup on btn
+	.mova streaming_interval, 20
 ENDM
 
 .serv_process EXPAND
@@ -23,7 +24,8 @@ ENDM
 ENDM
 
 .serv_prep_tx MACRO
-	.ev_prep_tx
+	ifset tx_pending.txp_event
+		goto ev_prep_tx
 	.sensor_prep_tx
 ENDM
 
@@ -67,3 +69,26 @@ button_down:
 
 serv_rx:
 	.sensor_rx
+
+.serv_ev_payload EXPAND
+	.mova pkt_size, 4
+	mov a, ev_code
+	mov pkt_service_command_l, a
+	if (a == JD_BUTTON_EV_DOWN) {
+		clear pkt_size // down event doesn't have payload
+	} else if (a == JD_BUTTON_EV_UP) {
+		// we snapshot final duration when emitting up
+		.mova pkt_payload[0], btn_down_l
+		.mova pkt_payload[1], btn_down_h
+	} else {
+		// hold events have duration computed on the fly
+		mov a, t16_1ms
+		sub a, btn_down_l
+		mov pkt_payload[0], a
+		mov a, t16_262ms
+		subc a, btn_down_h
+		mov pkt_payload[1], a
+	}
+ENDM
+
+	.include events.asm

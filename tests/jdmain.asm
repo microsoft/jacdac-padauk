@@ -7,8 +7,6 @@ pin_init:
 	PAC.JD_LED 	= 	1 // output
 	PAC.JD_TM 	= 	1 // output
 
-	.mova streaming_interval, 20
-
 	// TODO add random delay here, so that not all modules start at once?
 
 	call t16_sync
@@ -110,6 +108,14 @@ prep_tx:
 	}
 
 	ret
+
+check_service_class:
+	.forc x, <0123>
+	mov a, pkt_device_id[x]
+	ifneq a, (SERVICE_CLASS >> (x * 8)) & 0xff
+		goto not_interested
+	.endm
+	goto check_size
 
 
 	.t16_impl

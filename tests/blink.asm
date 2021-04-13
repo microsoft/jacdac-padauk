@@ -1,3 +1,8 @@
+blink_identify equ 3
+blink_identify_was0 equ 4
+blink_disconnected equ 5
+blink_status_on equ 6
+
 .blink_process EXPAND
 	PA.JD_LED = 0
 	if (blink.blink_identify) {

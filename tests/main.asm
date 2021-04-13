@@ -14,8 +14,6 @@ JD_BTN 	equ	4
 
 JD_TM 	equ	7 // logging
 	
-#define SERVICE_CLASS 0x1473a263
-
 .include jdheader.asm
 .include button.asm
 

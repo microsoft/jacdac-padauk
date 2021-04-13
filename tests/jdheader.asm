@@ -27,24 +27,16 @@ buffer_size equ (frame_header_size + 4 + payload_size)
 
 f_in_rx equ 0
 f_set_tx equ 1
-// f_identify equ 2
-f_reset_in equ 3
-f_ev1 equ 4
-f_ev2 equ 5
-f_announce_t16_bit equ 6
-f_announce_rst_cnt_max equ 7
-
-blink_identify equ 3
-blink_identify_was0 equ 4
-blink_disconnected equ 5
-blink_status_on equ 6
+f_reset_in equ 2
+f_ev1 equ 3
+f_ev2 equ 4
+f_announce_t16_bit equ 5
+f_announce_rst_cnt_max equ 6
 
 txp_announce equ 0
 txp_ack equ 1
-txp_streaming_samples equ 2
-txp_streaming_interval equ 3
-txp_reading equ 4
-txp_event equ 5
+txp_event equ 2
+// 3-5 used by sensor.asm
 
 pkt_addr equ 0x10
 
