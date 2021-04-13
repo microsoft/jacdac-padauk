@@ -1,6 +1,6 @@
 IDSIZE equ 8
 
-.fill_id MACRO
+.fill_id EXPAND
 	a = pkt_addr+4+IDSIZE-1
 	mov memidx$0, a
 	.mova isr0, IDSIZE
@@ -13,7 +13,7 @@ IDSIZE equ 8
 	goto @B
 ENDM
 
-.check_id MACRO fail_lbl
+.check_id EXPAND fail_lbl
 	a = pkt_addr+4+IDSIZE-1
 	mov memidx$0, a
 	.mova isr0, IDSIZE

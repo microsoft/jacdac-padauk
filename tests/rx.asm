@@ -1,6 +1,6 @@
 #define rx_buflimit isr0
 
-.rx_init MACRO
+.rx_init EXPAND
 	PAPH.JD_D = 1
 	call reset_tm2
 	TM2B = 64 // irq every 64 instructions, 8us
