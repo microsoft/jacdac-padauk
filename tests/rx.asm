@@ -86,16 +86,6 @@ rx_wait_start:
 .endm
 	goto rx_wait_start
 
-got_client_announce:
-	set0 blink.blink_disconnected
-	mov a, t16_262ms
-	sr a
-	and a, 0x3
-	set0 blink.0
-	set0 blink.1
-	or blink, a
-	ret
-
 timeout:
 	PA.JD_LED = 1
 

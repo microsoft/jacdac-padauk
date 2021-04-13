@@ -113,3 +113,4 @@ prep_tx:
 
 
 	.t16_impl
+	.blink_impl
