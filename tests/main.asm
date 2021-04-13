@@ -32,6 +32,8 @@ txp_event equ 5
 
 pkt_addr equ 0x10
 
+#define SERVICE_CLASS 0x1473a263
+
 #define JD_FRAME_FLAG_COMMAND 0
 #define JD_FRAME_FLAG_ACK_REQUESTED 1
 #define JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS 2
@@ -289,10 +291,10 @@ prep_tx:
 		mov pkt_payload[0], a
 		.mova pkt_payload[1], 0x01 // ACK-supported
 		// [2] and [3] already cleared
-		.mova pkt_payload[4], 0x63
-		.mova pkt_payload[5], 0xa2
-		.mova pkt_payload[6], 0x73
-		.mova pkt_payload[7], 0x14
+		.forc x, <0123>
+		mov a, (SERVICE_CLASS >> (x * 8)) & 0xff
+		mov pkt_payload[x+4], a
+		.endm
 		.mova pkt_size, 8
 		clear pkt_service_number
 		clear pkt_service_command_l

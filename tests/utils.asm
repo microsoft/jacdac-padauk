@@ -50,19 +50,19 @@ ENDM
 The if* macros below are used to resemble 'if' statements:
 
   ifset some.bit
-    do_something
+      do_something
 
 the do_something is exactly one instruction.
+
+You can also write:
+
+  if (some.bit) {
+	  do_something
+  }
+
+but it's not optimal when do_something is a single instruction.
  */
- 
-ifset MACRO flag
-	t0sn flag
-ENDM
 
-ifclear MACRO flag
-	t1sn flag
-ENDM
-
-ifneq MACRO x, y
-	ceqsn x, y
-ENDM
+#define ifset t0sn
+#define ifclear t1sn
+#define ifneq ceqsn

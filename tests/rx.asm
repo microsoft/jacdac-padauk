@@ -149,14 +149,12 @@ timeout:
 	sub a, 2
 	mov SP, a
 leave_irq:
-    .check_id not_interested // uses isr0, isr1
-
 	// this checks for announce packets
 	// note that we do that before checking for size or CRC - the announce from the client may be bigger than we support
 	// however, the flag bits we're interested in are at the beginning
 	mov a, frm_flags
 	// if any of these flags is set, we don't want it
-	and a, JD_FRAME_FLAG_VNEXT|JD_FRAME_FLAG_COMMAND|JD_FRAME_FLAG_ACK_REQUESTED|JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
+	and a, (1 << JD_FRAME_FLAG_VNEXT)|(1 << JD_FRAME_FLAG_COMMAND)|(1 << JD_FRAME_FLAG_ACK_REQUESTED)|(1 << JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS)
 	// service number and cmd must be all 0
 	or a, pkt_service_number
 	or a, pkt_service_command_h
@@ -171,6 +169,18 @@ leave_irq:
 			PA.JD_LED = 0
 			goto _do_leave
 		}
+	}
+
+	mov a, frm_flags
+	and a, (1 << JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS)
+	if (ZF) {
+    	.check_id not_interested // uses isr0, isr1
+	} else {
+		.forc x, <0123>
+		mov a, pkt_device_id[x]
+		ifneq a, (SERVICE_CLASS >> (x * 8)) & 0xff
+			goto not_interested
+		.endm
 	}
 
 	// we have to check size before checking CRC
@@ -203,9 +213,9 @@ leave_irq:
 	ifset isr0.JD_FRAME_FLAG_VNEXT
 	  goto pkt_error
 	
-	if (isr0.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS) {
-		// TODO
-	}
+	mov a, 1
+	ifset isr0.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
+		mov pkt_service_number, a
 
 	// sync the timer before packet processing - it may need the current value
 	call t16_sync
