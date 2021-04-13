@@ -1,7 +1,5 @@
 #define t16_4us t16_low$0
 #define t16_1ms t16_low$1
-#define t16_262ms t16_high$0
-#define t16_67s t16_high$1
 
 .t16_chk MACRO t16_v, tim, handler
 	mov a, t16_v
@@ -31,7 +29,9 @@ t16_sync:
 	if (INTRQ.T16) {
 		INTRQ.T16 = 0
 		inc t16_262ms
+#ifdef CFG_T16_32BIT
 		addc t16_67s
+#endif
 	}
 	mov a, t16_1ms
 	swap a

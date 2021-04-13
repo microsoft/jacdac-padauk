@@ -31,9 +31,11 @@ loop:
 		}
 	}
 
+#ifdef CFG_RESET_IN
 	if (flags.f_reset_in) {
 		.t16_chk t16_262ms, t_reset, reset
 	}
+#endif
 
 	if (flags.f_set_tx) {
 		set0 flags.f_set_tx
@@ -94,7 +96,11 @@ prep_tx:
 		ifset flags.f_announce_rst_cnt_max
 			mov a, 0xf
 		mov pkt_payload[0], a
-		.mova pkt_payload[1], 0x01 // ACK-supported
+#ifdef CFG_BROADCAST
+		.mova pkt_payload[1], JD_AD0_ACK_SUPPORTED|JD_AD0_IDENTIFIER_IS_SERVICE_CLASS_SUPPORTED
+#else
+		.mova pkt_payload[1], JD_AD0_ACK_SUPPORTED
+#endif
 		// [2] and [3] already cleared
 		.forc x, <0123>
 		mov a, (SERVICE_CLASS >> (x * 8)) & 0xff
@@ -109,6 +115,7 @@ prep_tx:
 
 	ret
 
+#ifdef CFG_BROADCAST
 check_service_class:
 	.forc x, <0123>
 	mov a, pkt_device_id[x]
@@ -116,7 +123,7 @@ check_service_class:
 		goto not_interested
 	.endm
 	goto check_size
-
+#endif
 
 	.t16_impl
 	.blink_impl

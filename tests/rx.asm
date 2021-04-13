@@ -98,10 +98,12 @@ timeout:
 leave_irq:
 	.blink_rx
 
+#ifdef CFG_BROADCAST
 	mov a, frm_flags
 	and a, (1 << JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS)
 	ifclear ZF
-		goto check_service_class 
+		goto check_service_class
+#endif
     .check_id not_interested // uses isr0, isr1
 
 check_size:
@@ -134,10 +136,12 @@ check_size:
 	  goto not_interested // this is a report
 	ifset isr0.JD_FRAME_FLAG_VNEXT
 	  goto pkt_error
-	
+
+#ifdef CFG_BROADCAST
 	mov a, 1
 	ifset isr0.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
 		mov pkt_service_number, a
+#endif
 
 	if (isr0.JD_FRAME_FLAG_ACK_REQUESTED) {
 		set1 tx_pending.txp_ack

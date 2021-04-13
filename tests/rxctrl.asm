@@ -30,6 +30,7 @@
 		goto rx_process_end
 	}
 
+#ifdef CFG_RESET_IN
 	if (a == JD_HIGH_REG_RW_SET) {
 		mov a, pkt_service_command_l
 
@@ -48,6 +49,7 @@
 			mov t_reset, a // set timer
 		}
 	}
+#endif
 
 	goto rx_process_end
 

@@ -3,6 +3,11 @@
 #define JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS 2
 #define JD_FRAME_FLAG_VNEXT 7
 
+#define JD_AD0_ACK_SUPPORTED 0x01
+#define JD_AD0_IDENTIFIER_IS_SERVICE_CLASS_SUPPORTED 0x02
+#define JD_AD0_FRAMES_SUPPORTED 0x04
+#define JD_AD0_IS_CLIENT 0x08
+
 #define JD_AD0_IS_CLIENT_MSK 0x08
 
 #define JD_HIGH_CMD 0x00
@@ -57,7 +62,12 @@ pkt_addr equ 0x10
 
 	BYTE	t16_16ms
 	WORD    t16_low
-	WORD    t16_high
+	BYTE    t16_262ms
+#ifdef CFG_T16_32BIT
+	BYTE    t16_67s
+#else
+	BYTE    t_tx
+#endif
 
 	.ramadr pkt_addr
 	BYTE	crc_l, crc_h
@@ -74,19 +84,18 @@ pkt_addr equ 0x10
 	BYTE	pkt_payload[payload_size]
 	BYTE	rx_data // this is overwritten during rx if packet too long (but that's fine)
 
+#ifdef CFG_T16_32BIT
 	BYTE    t_tx
+#endif
 
 	// so far:
 	// application is not using stack when IRQ enabled
 	// rx ISR can do up to 3
 	WORD	main_st[3]
 
+#ifdef CFG_RESET_IN
 	BYTE    t_reset
-
-#define JD_BUTTON_EV_DOWN 0x01
-#define JD_BUTTON_EV_UP 0x02
-#define JD_BUTTON_EV_HOLD 0x81
-
+#endif
 
 	// more data defined in rxserv.asm
 

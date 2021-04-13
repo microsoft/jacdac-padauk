@@ -13,7 +13,12 @@ JD_D 	equ	6
 JD_BTN 	equ	4
 
 JD_TM 	equ	7 // logging
-	
+
+// Cost given in comment: words of flash/bytes of RAM
+// #define CFG_T16_32BIT 1 // 1/1
+#define CFG_BROADCAST 1 // 20/0
+#define CFG_RESET_IN 1 // 24/1
+
 .include jdheader.asm
 .include button.asm
 
