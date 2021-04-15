@@ -13,7 +13,7 @@
 	BYTE    btn_down_h
 
 .serv_init EXPAND
-	PAPH.JD_BTN =   1 // pullup on btn
+	PAPH.PIN_BTN =   1 // pullup on btn
 	.mova streaming_interval, 20
 ENDM
 
@@ -32,7 +32,7 @@ ENDM
 do_sample:
 	.t16_set t16_1ms, t_sample, 20
 	mov a, sensor_state[0]
-	ifclear PA.JD_BTN
+	ifclear PA.PIN_BTN
 		goto button_active
 button_inactive:
 	ifset ZF // state==0

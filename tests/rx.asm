@@ -1,7 +1,7 @@
 #define rx_buflimit isr0
 
 .rx_init EXPAND
-	PAPH.JD_D = 1
+	PAPH.PIN_JACDAC = 1
 	call reset_tm2
 	TM2B = 64 // irq every 64 instructions, 8us
 	$ TM2C SYSCLK
@@ -23,7 +23,7 @@ interrupt:
 	INTRQ.TM2 = 0
 	ifset flags.f_in_rx
 	  goto timeout
-	ifset PA.JD_D
+	ifset PA.PIN_JACDAC
 	  reti
 
 	pushaf
@@ -40,7 +40,7 @@ interrupt:
 
 	// wait for end of lo pulse
 @@:
-	ifclear PA.JD_D
+	ifclear PA.PIN_JACDAC
 	  goto @b
 
 	.mova memidx$0, pkt_addr
@@ -59,7 +59,7 @@ rx_start:
 	nop
 	mov a, 0x01
 rx_next_bit:
-	ifset PA.JD_D
+	ifset PA.PIN_JACDAC
 		or rx_data, a
 	nop
 	sl a
@@ -68,7 +68,7 @@ rx_next_bit:
 		goto rx_next_bit
 rx_lastbit:
 	nop
-	ifset PA.JD_D
+	ifset PA.PIN_JACDAC
 		or rx_data, a
 	mov a, rx_data
 	idxm memidx, a   	// 2T
@@ -81,13 +81,13 @@ rx_lastbit:
 // wait for serial transmission to start
 rx_wait_start:
 .repeat 20
-	ifclear PA.JD_D
+	ifclear PA.PIN_JACDAC
 	  goto rx_start
 .endm
 	goto rx_wait_start
 
 timeout:
-	PA.JD_LED = 1
+	PA.PIN_LED = 1
 
 	// this is nested IRQ; we want to return to original code, not outer interrupt
 	// TODO: try fake popaf
@@ -161,7 +161,7 @@ _do_leave:
 	set0 flags.f_in_rx
 	call reset_tm2
 	popaf
-	PA.JD_LED = 0
+	PA.PIN_LED = 0
 	reti
 
 pkt_overflow:

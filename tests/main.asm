@@ -8,11 +8,11 @@
 	.Code_Option	LVR		3.0V
 //}}PADAUK_CODE_OPTION
 
-JD_LED	equ	3
-JD_D 	equ	6
-JD_BTN 	equ	4
-
-JD_TM 	equ	7 // logging
+// all pins on PA
+#define PIN_LED	3
+#define PIN_JACDAC 6
+#define PIN_BTN	4
+#define PIN_LOG 7  // 7/0
 
 // Cost given in comment: words of flash/bytes of RAM
 // #define CFG_T16_32BIT 1 // 1/1

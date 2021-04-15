@@ -13,14 +13,14 @@ try_tx:
 		engint
 		goto loop
 	}
-	ifclear PA.JD_D
+	ifclear PA.PIN_JACDAC
 		goto switch_to_rx
-	PA.JD_D = 0 // set lo
-	PAC.JD_D = 1 // set to output
+	PA.PIN_JACDAC = 0 // set lo
+	PAC.PIN_JACDAC = 1 // set to output
 
 	.fill_id // uses isr0
 
-	PA.JD_D = 1
+	PA.PIN_JACDAC = 1
 
 	call reset_tm2
 	$ TM2S 8BIT, /1, /6 // ~50us
@@ -58,7 +58,7 @@ try_tx:
 	goto _stop
 
 tx_not_last:
-	PA.JD_D = 0
+	PA.PIN_JACDAC = 0
 	mov a, 8
 	nop
 _nextbit:	
@@ -66,13 +66,13 @@ _nextbit:
 	ifset CF
 	  goto _bit1
 	nop
-	PA.JD_D = 0
+	PA.PIN_JACDAC = 0
 	dzsn a
 	goto _nextbit
 	goto _stop
 
 _bit1:
-	PA.JD_D = 1
+	PA.PIN_JACDAC = 1
 	dzsn a
 	goto _nextbit
 	goto _stop
@@ -81,7 +81,7 @@ _stop:
 	idxm a, memidx // 2T
 	mov tx_data, a
 	inc memidx$0
-	PA.JD_D = 1
+	PA.PIN_JACDAC = 1
 	nop
 	nop
 	nop
@@ -90,11 +90,11 @@ _stop:
 		goto tx_not_last
 tx_last:
 	nop
-	PA.JD_D = 0
+	PA.PIN_JACDAC = 0
 	.delay 90
-	PA.JD_D = 1
-	PAC.JD_D = 0 // set to input
-	PAPH.JD_D = 1
+	PA.PIN_JACDAC = 1
+	PAC.PIN_JACDAC = 0 // set to input
+	PAPH.PIN_JACDAC = 1
 	call reset_tm2
 	engint
 	goto loop

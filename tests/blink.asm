@@ -4,13 +4,13 @@ blink_disconnected equ 5
 blink_status_on equ 6
 
 .blink_process EXPAND
-	PA.JD_LED = 0
+	PA.PIN_LED = 0
 	if (blink.blink_identify) {
 		if (!blink.blink_identify_was0) {
 			ifclear t16_16ms.6
 				set1 blink.blink_identify_was0
 		} else {
-			PA.JD_LED = 1
+			PA.PIN_LED = 1
 			if (t16_16ms.6) {
 				dec blink
 				set0 blink.blink_identify_was0
@@ -32,7 +32,7 @@ blink_status_on equ 6
 		}
 		if (blink.blink_disconnected) {
 			ifset t16_262ms.2
-				PA.JD_LED = 1
+				PA.PIN_LED = 1
 		} else {
 			mov a, t16_262ms
 			sr a
@@ -41,7 +41,7 @@ blink_status_on equ 6
 			ifclear ZF
 				set1 blink.blink_disconnected
 			if (blink.blink_status_on) {
-				PA.JD_LED = 1
+				PA.PIN_LED = 1
 			}
 		}
 	}
@@ -63,9 +63,9 @@ ENDM
 		and a, JD_AD0_IS_CLIENT_MSK
 		if (!ZF) {
 			call got_client_announce
-			PA.JD_LED = 1
+			PA.PIN_LED = 1
 			.delay 250
-			PA.JD_LED = 0
+			PA.PIN_LED = 0
 			goto _do_leave
 		}
 	}

@@ -38,7 +38,9 @@ ENDM
 ENDM
 
 .set_log MACRO v
-	PA.JD_TM = v
+#ifdef PIN_LOG
+	PA.PIN_LOG = v
+#endif
 ENDM
 
 .pulse_log MACRO

@@ -4,8 +4,10 @@
 	.rx_init
 
 pin_init:
-	PAC.JD_LED 	= 	1 // output
-	PAC.JD_TM 	= 	1 // output
+	PAC.PIN_LED 	= 	1 // output
+#ifdef PIN_LOG
+	PAC.PIN_LOG 	= 	1 // output
+#endif
 
 	// TODO add random delay here, so that not all modules start at once?
 
@@ -13,7 +15,7 @@ pin_init:
 	.serv_init
 
 loop:
-	.assert_not PAC.JD_D // we should be in input mode here
+	.assert_not PAC.PIN_JACDAC // we should be in input mode here
 	.disint
 	call t16_sync
 	engint
