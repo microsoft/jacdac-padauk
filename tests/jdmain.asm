@@ -67,6 +67,10 @@ panic:
 	.mova pkt_service_command_l, y
 ENDM
 
+.set_ro_reg MACRO y
+	.mova pkt_service_command_l, y
+ENDM
+
 prep_tx:
 	.mova pkt_service_number, 1
 	.mova pkt_service_command_h, JD_HIGH_REG_RO_GET
@@ -85,7 +89,6 @@ prep_tx:
 
 	.serv_prep_tx
 
-	// ~20 cycles until here + ~30 here
 	if (tx_pending.txp_announce) {
 		set0 tx_pending.txp_announce
 		// reset_cnt maxes out at 0xf	

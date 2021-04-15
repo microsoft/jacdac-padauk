@@ -24,6 +24,7 @@
 #define JD_REG_RW_STREAMING_SAMPLES 0x03
 #define JD_REG_RW_STREAMING_INTERVAL 0x04
 #define JD_REG_RO_READING 0x01
+#define JD_REG_RO_VARIANT 0x07
 
 frame_header_size equ 12
 crc_size equ 2

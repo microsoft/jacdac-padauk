@@ -120,7 +120,7 @@ ENDM
 		_cnt => _cnt + 1
 	.endm
 		.mova pkt_size, SENSOR_SIZE
-		.setcmd JD_HIGH_REG_RO_GET, JD_REG_RO_READING
+		.set_ro_reg JD_REG_RO_READING
 		ret
 	}
 ENDM
