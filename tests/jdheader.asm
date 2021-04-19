@@ -38,13 +38,14 @@ f_ev1 equ 3
 f_ev2 equ 4
 f_announce_t16_bit equ 5
 f_announce_rst_cnt_max equ 6
+// 7 free for services
 
 txp_announce equ 0
 txp_ack equ 1
 txp_event equ 2
 // 3-5 used by sensor.asm
 
-pkt_addr equ 0x10
+pkt_addr equ 12
 
 .include utils.asm
 .include t16.asm
@@ -56,19 +57,12 @@ pkt_addr equ 0x10
 	BYTE    flags
 	BYTE    tx_pending
 	BYTE	isr0, isr1, isr2
-	BYTE    rng_x
 
 	BYTE    blink
-	BYTE    ack_crc_l, ack_crc_h
 
-	BYTE	t16_16ms
 	WORD    t16_low
+	BYTE	t16_16ms
 	BYTE    t16_262ms
-#ifdef CFG_T16_32BIT
-	BYTE    t16_67s
-#else
-	BYTE    t_tx
-#endif
 
 	.ramadr pkt_addr
 	BYTE	crc_l, crc_h
@@ -84,15 +78,19 @@ pkt_addr equ 0x10
 	BYTE	pkt_service_command_h
 	BYTE	pkt_payload[payload_size]
 	BYTE	rx_data // this is overwritten during rx if packet too long (but that's fine)
-
-#ifdef CFG_T16_32BIT
-	BYTE    t_tx
-#endif
+	BYTE    rng_x
 
 	// so far:
 	// application is not using stack when IRQ enabled
 	// rx ISR can do up to 3
 	WORD	main_st[3]
+
+	BYTE    ack_crc_l, ack_crc_h
+	BYTE    t_tx
+
+#ifdef CFG_T16_32BIT
+	BYTE    t16_67s
+#endif
 
 #ifdef CFG_RESET_IN
 	BYTE    t_reset

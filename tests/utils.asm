@@ -68,3 +68,33 @@ but it's not optimal when do_something is a single instruction.
 #define ifset t0sn
 #define ifclear t1sn
 #define ifneq ceqsn
+
+// t0:t1 = x * y
+// ~12 instr.; ~90T
+.mul_8x8 EXPAND tmp, t0, t1, x, y 
+	clear t1
+	.mova tmp, 8
+@@:
+	sr x
+	if (CF) {
+		mov a, y
+		add t1, a
+	}
+	src t1
+	src t0
+	dzsn tmp
+	goto @b
+ENDM
+
+.on_rising MACRO shadow, test, trg
+	if (shadow) {
+		ifclear test
+			set0 shadow
+	} else {
+		if (test) {
+			set1 shadow
+			trg
+		}
+	}
+ENDM
+

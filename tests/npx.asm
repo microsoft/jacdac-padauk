@@ -7,25 +7,29 @@ txp_color equ 3
 txp_led_count equ 4
 txp_variant equ 5
 
-	BYTE    color_r
-	BYTE    color_g
-	BYTE    color_b
+f_do_frame equ 7
+
+	BYTE    value_h[3]
+	BYTE    value_l[3]
+	BYTE    speed_h[3]
+	BYTE    speed_l[3]
+	BYTE    target[3]
 
 .serv_init EXPAND
 	PAC.PIN_NPX = 1 // output
 ENDM
 
 .serv_process EXPAND
-	// TODO
+	.on_rising flags.f_do_frame, t16_1ms.5, <goto do_frame>
 ENDM
 
 .serv_prep_tx EXPAND
 	if (tx_pending.txp_color) {
 		set0 tx_pending.txp_color
 		.set_ro_reg JD_LED_REG_RO_COLOR
-		.mova pkt_payload[0], color_r
-		.mova pkt_payload[1], color_g
-		.mova pkt_payload[2], color_b
+		.forc i, <012>
+		.mova pkt_payload[i], value_h[i]
+		.endm
 		.mova pkt_size, 3
 		ret
 	}
@@ -47,6 +51,49 @@ ENDM
 	}
 ENDM
 
+do_frame:
+	.forc i, <012>
+		mov a, speed_l[i]
+		add value_l[i], a
+		mov a, speed_h[i]
+		addc value_h[i], a
+		if (a == 0) {
+			mov a, speed_l[i]
+			ifset ZF
+				goto @f.target
+			mov a, speed_h[i]
+		}
+		sl a
+		if (CF) {
+			// speed < 0
+			mov a, value_h[i]
+			sub a, target[i]
+			ifset CF
+				goto @f.target
+		} else {
+			mov a, target[i]
+			sub a, value_h[i]
+			ifset CF
+				goto @f.target
+		}
+		goto @f.quit
+	@@.target:
+		clear speed_h[i]
+		clear speed_l[i]
+		.mova value_h[i], target[i]
+		clear value_l[i]
+	@@.quit:
+	.endm
+	goto loop
+
+handle_channel:
+	sr isr0
+	sr isr1
+	mov a, isr1
+	sub isr0, a
+	.mul_8x8 rx_data, isr1, isr2, isr0, pkt_payload[3]
+	ret
+
 serv_rx:
 	mov a, pkt_service_command_h
 
@@ -54,7 +101,16 @@ serv_rx:
 		mov a, pkt_service_command_l
 
 		if (a == JD_LED_CMD_ANIMATE) {
-			// TODO
+			// ch->speed = ((to[i] - (ch->value >> 8)) * anim->speed) >> 1;
+			.forc i, <012>
+				mov a, pkt_payload[i]
+				mov target[i], a
+				mov isr0, a
+				.mova isr1, value_h[i]
+				call handle_channel
+				.mova speed_h[i], isr2
+				.mova speed_l[i], isr1
+			.endm
 		}
 
 		goto rx_process_end

@@ -23,15 +23,7 @@ loop:
 	.blink_process
 
 	// this sends first announce after 263ms, and each subsequent one every 526ms
-	if (flags.f_announce_t16_bit) {
-		ifclear t16_262ms.0
-			set0 flags.f_announce_t16_bit
-	} else {
-		if (t16_262ms.0) {
-			set1 flags.f_announce_t16_bit
-			set1 tx_pending.txp_announce
-		}
-	}
+	.on_rising flags.f_announce_t16_bit, t16_262ms.0, <set1 tx_pending.txp_announce>
 
 #ifdef CFG_RESET_IN
 	if (flags.f_reset_in) {
