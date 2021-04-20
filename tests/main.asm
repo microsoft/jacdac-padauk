@@ -20,11 +20,11 @@
 
 .include jdheader.asm
 
-#define PIN_BTN 4
-.include button.asm // 214/11 (incl. events and sensor)
+//#define PIN_BTN 4
+//.include button.asm // 214/11 (incl. events and sensor)
 
-//#define PIN_NPX 4
-//.include npx.asm
+#define PIN_NPX 4
+.include npx.asm
 
 
 main:

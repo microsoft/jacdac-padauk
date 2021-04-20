@@ -38,13 +38,13 @@ ENDM
 		set0 tx_pending.txp_led_count
 		.set_ro_reg JD_LED_REG_RO_LED_COUNT
 		.mova pkt_payload[0], 1 // 1 LED
-		.mova pkt_size, 1
+		.mova pkt_size, 2
 		ret
 	}
 
 	if (tx_pending.txp_variant) {
 		set0 tx_pending.txp_variant
-		.set_ro_reg JD_LED_REG_RO_LED_COUNT
+		.set_ro_reg JD_REG_RO_VARIANT
 		.mova pkt_payload[0], 0x2 // Variant - SMD
 		.mova pkt_size, 1
 		ret
@@ -85,6 +85,9 @@ do_frame:
 	@@.quit:
 	.endm
 
+// Measured as:
+// 0.37us / 0.89us for 0
+// 0.62us / 0.63us for 1
 .npx_byte MACRO
 @@:
 	set1 PA.PIN_NPX
@@ -106,13 +109,13 @@ do_frame:
 	ifclear PA.PIN_JACDAC
 		set1 isr1.0
 	nop
-	nop
 ENDM
 
 	.disint
 		.mova isr1, 0
 		.mova isr0, 7
-		.forc i, <012>
+		// assume GRB order (102)
+		.forc i, <102>
 		mov a, value_h[i]
 		.npx_byte
 		.endm
