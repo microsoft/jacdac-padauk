@@ -87,7 +87,7 @@ rx_wait_start:
 	goto rx_wait_start
 
 timeout:
-	PA.PIN_LED = 1
+	.set_log 1
 
 	// this is nested IRQ; we want to return to original code, not outer interrupt
 	// TODO: try fake popaf
@@ -159,7 +159,7 @@ _do_leave:
 	set0 flags.f_in_rx
 	call reset_tm2
 	popaf
-	PA.PIN_LED = 0
+	.set_log 0
 	reti
 
 pkt_overflow:

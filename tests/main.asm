@@ -11,7 +11,7 @@
 // all pins on PA
 #define PIN_LED	3
 #define PIN_JACDAC 6
-//#define PIN_LOG 7
+#define PIN_LOG 7
 
 // Cost given in comment: words of flash/bytes of RAM
 // #define CFG_T16_32BIT 1 // 1/1
@@ -20,11 +20,11 @@
 
 .include jdheader.asm
 
-// #define PIN_BTN 4
-// .include button.asm // 214/11 (incl. events and sensor)
+#define PIN_BTN 4
+.include button.asm // 214/11 (incl. events and sensor)
 
-#define PIN_NPX 4
-.include npx.asm
+//#define PIN_NPX 4
+//.include npx.asm
 
 
 main:
