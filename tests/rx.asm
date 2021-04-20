@@ -16,7 +16,7 @@ reset_tm2:
 	set1 flags.f_set_tx
 	ret
 
-	// TODO we have about 14 instructions free here
+	// TODO we have about 8 instructions free here
 
 	.romadr	0x10            // interrupt vector
 interrupt:

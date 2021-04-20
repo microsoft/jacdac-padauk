@@ -84,6 +84,42 @@ do_frame:
 		clear value_l[i]
 	@@.quit:
 	.endm
+
+.npx_byte MACRO
+@@:
+	set1 PA.PIN_NPX
+	sl a
+	ifclear CF
+	   set0 PA.PIN_NPX
+	nop
+	set0 PA.PIN_NPX
+	nop
+	dzsn isr0
+		goto @b
+	set1 isr0.3
+	set1 PA.PIN_NPX
+	sl a
+	ifclear CF
+	   set0 PA.PIN_NPX
+	dec isr0
+	set0 PA.PIN_NPX
+	ifclear PA.PIN_JACDAC
+		set1 isr1.0
+	nop
+	nop
+ENDM
+
+	.disint
+		.mova isr1, 0
+		.mova isr0, 7
+		.forc i, <012>
+		mov a, value_h[i]
+		.npx_byte
+		.endm
+		ifset isr1.0
+			goto switch_to_rx
+	engint
+
 	goto loop
 
 handle_channel:
