@@ -130,7 +130,20 @@ handle_channel:
 	sr isr1
 	mov a, isr1
 	sub isr0, a
+	set0 frm_flags.6
+	if (CF) {
+		// result is negative
+		neg isr0
+		set1 frm_flags.6	
+	}
 	.mul_8x8 rx_data, isr1, isr2, isr0, pkt_payload[3]
+	if (frm_flags.6) {
+		// isr1:isr2 = -isr1:isr2
+		not isr2 // negate high bits first
+		neg isr1
+		ifset ZF // isr1 was 0, so there was "carry" to isr2
+			inc isr2
+	}
 	ret
 
 serv_rx:

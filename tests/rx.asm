@@ -11,7 +11,7 @@ ENDM
 reset_tm2:
 	mov a, 0
 	mov TM2CT, a
-	mov INTRQ, a
+	INTRQ.TM2 = 0
 	$ TM2S 8BIT, /1, /1
 	set1 flags.f_set_tx
 	ret
@@ -87,6 +87,8 @@ rx_wait_start:
 	goto rx_wait_start
 
 timeout:
+	INTEN = 0 // for reasons unknown the interrupts are not disabled here, at least when single-stepping in ICE
+
 	.set_log 1
 
 	// this is nested IRQ; we want to return to original code, not outer interrupt
@@ -129,19 +131,18 @@ check_size:
 	ifneq a, isr2
 	  goto pkt_error
 
-	.mova isr0, frm_flags
-	ifclear isr0.JD_FRAME_FLAG_COMMAND
+	ifclear frm_flags.JD_FRAME_FLAG_COMMAND
 	  goto not_interested // this is a report
-	ifset isr0.JD_FRAME_FLAG_VNEXT
+	ifset frm_flags.JD_FRAME_FLAG_VNEXT
 	  goto pkt_error
 
 #ifdef CFG_BROADCAST
 	mov a, 1
-	ifset isr0.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
+	ifset frm_flags.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
 		mov pkt_service_number, a
 #endif
 
-	if (isr0.JD_FRAME_FLAG_ACK_REQUESTED) {
+	if (frm_flags.JD_FRAME_FLAG_ACK_REQUESTED) {
 		set1 tx_pending.txp_ack
 		.mova ack_crc_l, crc_l
 		.mova ack_crc_h, crc_h
@@ -158,6 +159,7 @@ _do_leave:
 	call t16_sync
 	set0 flags.f_in_rx
 	call reset_tm2
+	$ INTEN = TM2
 	popaf
 	.set_log 0
 	reti
