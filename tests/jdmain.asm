@@ -121,6 +121,3 @@ check_service_class:
 	.endm
 	goto check_size
 #endif
-
-	.t16_impl
-	.blink_impl

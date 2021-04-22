@@ -47,10 +47,311 @@ txp_event equ 2
 
 pkt_addr equ 12
 
-.include utils.asm
-.include t16.asm
-.include rng.asm
-.include blink.asm
+//
+// Module: utils
+//
+
+.ldbytes MACRO dst, bytes
+	_cnt => 0
+	.for b, <bytes>
+		mov a, b
+		mov dst[_cnt], a
+		_cnt => _cnt + 1
+	.endm
+ENDM
+
+.mova MACRO dst, val
+	mov a, val
+	mov dst, a
+ENDM
+
+.clear_memory MACRO
+	.mova memidx$0, _SYS(SIZE.RAM)-1
+	clear memidx$1
+	mov a, 0x00
+clear_loop:
+	idxm memidx, a
+	dzsn memidx$0
+	goto clear_loop
+ENDM
+
+.disint MACRO
+	// apparently when you get INT during disgint execution, it may not work
+	.disgint
+ENDM
+
+.assert_not MACRO cond
+	ifset cond
+		call panic
+ENDM
+
+.assert MACRO cond
+	ifclear cond
+		call panic
+ENDM
+
+.set_log MACRO v
+#ifdef PIN_LOG
+	PA.PIN_LOG = v
+#endif
+ENDM
+
+.pulse_log MACRO
+	.set_log 1
+	.set_log 0
+ENDM
+
+/*
+The if* macros below are used to resemble 'if' statements:
+
+  ifset some.bit
+      do_something
+
+the do_something is exactly one instruction.
+
+You can also write:
+
+  if (some.bit) {
+	  do_something
+  }
+
+but it's not optimal when do_something is a single instruction.
+ */
+
+#define ifset t0sn
+#define ifclear t1sn
+#define ifneq ceqsn
+
+// t0:t1 = x * y (unsigned); doesn't change y
+// ~12 instr.; ~90T
+.mul_8x8 EXPAND tmp, t0, t1, x, y 
+	clear t1
+	.mova tmp, 8
+@@:
+	sr x
+	if (CF) {
+		mov a, y
+		add t1, a
+	}
+	src t1
+	src t0
+	dzsn tmp
+	goto @b
+ENDM
+
+.on_rising MACRO shadow, test, trg
+	if (shadow) {
+		ifclear test
+			set0 shadow
+	} else {
+		if (test) {
+			set1 shadow
+			trg
+		}
+	}
+ENDM
+
+//
+// Module: t16
+//
+
+#define t16_4us t16_low$0
+#define t16_1ms t16_low$1
+
+.t16_chk MACRO t16_v, tim, handler
+	mov a, t16_v
+	sub a, tim
+	and a, 0x80
+	ifset ZF
+		handler
+ENDM
+
+.t16_set MACRO t16_v, tim, num
+	mov a, t16_v
+	add a, num
+	mov tim, a
+ENDM
+
+.t16_init EXPAND
+t16_init_:
+	stt16 t16_low
+	$ INTEGS BIT_F // falling edge on T16
+	$ T16M IHRC, /64, BIT15
+ENDM
+
+
+.t16_impl EXPAND
+t16_sync:
+	ldt16 t16_low
+	if (INTRQ.T16) {
+		INTRQ.T16 = 0
+		inc t16_262ms
+#ifdef CFG_T16_32BIT
+		addc t16_67s
+#endif
+	}
+	mov a, t16_1ms
+	swap a
+	and a, 0x0f
+	mov t16_16ms, a
+	mov a, t16_262ms
+	swap a
+	and a, 0xf0
+	or t16_16ms, a
+	ret
+ENDM
+
+//
+// Module: rng
+//
+
+.rng_init EXPAND
+	$ TM2S 8BIT, /1, /1
+	TM2B = 2
+	$ TM2C ILRC
+	INTRQ = 0x00
+	mov a, 7
+	call get_id
+	mov rng_x, a // start seeding with 7th byte of device ID
+	.mova isr0, 37
+_rng_byte:
+	mov a, 0
+	INTRQ.TM2 = 0
+@@:
+	add a, 1
+	ifclear INTRQ.TM2
+	  goto @b
+	xor a, rng_x
+	sl a
+	ifset CF
+	  or a, 0x01
+	mov rng_x, a
+	dzsn isr0
+	goto _rng_byte
+	mov a, rng_x
+	mov rng_x, a
+ENDM
+
+.rng_add_entropy EXPAND
+	mov a, t16_4us
+	xor rng_x, a
+ENDM
+
+/*
+This has period of 255 (so we just exclude 0)
+	x ^= x << 1
+	x ^= x >> 1
+	x ^= x << 2
+*/
+.rng_next EXPAND
+	mov a, rng_x
+	ifset ZF // this can happen when we "add entropy"
+		mov a, 42
+	sl rng_x
+	xor rng_x, a
+	mov a, rng_x
+	sr a
+	xor rng_x, a
+	mov a, rng_x
+	sl a
+	sl a
+	xor rng_x, a
+	mov a, rng_x
+ENDM
+
+
+//
+// Module: blink
+//
+
+blink_identify equ 3
+blink_identify_was0 equ 4
+blink_disconnected equ 5
+blink_status_on equ 6
+
+.blink_process EXPAND
+	PA.PIN_LED = 0
+	if (blink.blink_identify) {
+		if (!blink.blink_identify_was0) {
+			ifclear t16_16ms.6
+				set1 blink.blink_identify_was0
+		} else {
+			PA.PIN_LED = 1
+			if (t16_16ms.6) {
+				dec blink
+				set0 blink.blink_identify_was0
+				if (!blink.blink_identify) {
+					.disint
+					call got_client_announce
+					engint
+				}
+			}
+		}
+	} else {
+		if (t16_262ms.3) {
+			set0 blink.blink_identify_was0
+		} else {
+			if (!blink.blink_identify_was0) {
+				set1 blink.blink_identify_was0
+				set0 blink.blink_status_on
+			}
+		}
+		if (blink.blink_disconnected) {
+			ifset t16_262ms.2
+				PA.PIN_LED = 1
+		} else {
+			mov a, t16_262ms
+			sr a
+			sub a, blink
+			and a, 0x02
+			ifclear ZF
+				set1 blink.blink_disconnected
+			if (blink.blink_status_on) {
+				PA.PIN_LED = 1
+			}
+		}
+	}
+ENDM
+
+.blink_rx EXPAND
+	// this checks for announce packets
+	// note that we do that before checking for size or CRC - the announce from the client may be bigger than we support
+	// however, the flag bits we're interested in are at the beginning
+	mov a, frm_flags
+	// if any of these flags is set, we don't want it
+	and a, (1 << JD_FRAME_FLAG_VNEXT)|(1 << JD_FRAME_FLAG_COMMAND)|(1 << JD_FRAME_FLAG_ACK_REQUESTED)|(1 << JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS)
+	// service number and cmd must be all 0
+	or a, pkt_service_number
+	or a, pkt_service_command_h
+	or a, pkt_service_command_l
+	if (ZF) {
+		mov a, pkt_payload[1]
+		and a, JD_AD0_IS_CLIENT_MSK
+		if (!ZF) {
+			call got_client_announce
+			PA.PIN_LED = 1
+			.delay 250
+			PA.PIN_LED = 0
+			goto _do_leave
+		}
+	}
+ENDM
+
+.blink_impl EXPAND
+got_client_announce:
+	set0 blink.blink_disconnected
+	mov a, t16_262ms
+	sr a
+	and a, 0x3
+	set0 blink.0
+	set0 blink.1
+	or blink, a
+	ret
+ENDM
+
+//
+// Module: RAM
+//
 
 	.ramadr 0x00
 	WORD    memidx
@@ -96,10 +397,470 @@ pkt_addr equ 12
 	BYTE    t_reset
 #endif
 
-	// more data defined in rxserv.asm
-
 	goto	main
 
-	.include rx.asm
-	.include crc16.asm
-	.include tx.asm
+//
+// Module: rx
+//
+
+#define rx_buflimit isr0
+
+.rx_init EXPAND
+	PAPH.PIN_JACDAC = 1
+	call reset_tm2
+	TM2B = 64 // irq every 64 instructions, 8us
+	$ TM2C SYSCLK
+	$ INTEN = TM2
+ENDM
+
+reset_tm2:
+	mov a, 0
+	mov TM2CT, a
+	INTRQ.TM2 = 0
+	$ TM2S 8BIT, /1, /1
+	set1 flags.f_set_tx
+	ret
+
+	// TODO we have about 8 instructions free here
+
+	.romadr	0x10            // interrupt vector
+interrupt:
+	INTRQ.TM2 = 0
+	ifset flags.f_in_rx
+	  goto timeout
+	ifset PA.PIN_JACDAC
+	  reti
+
+	pushaf
+
+	.pulse_log
+
+	// seed the PRNG with reception time of each packet
+	.rng_add_entropy
+
+	set1 flags.f_in_rx
+	$ TM2S 8BIT, /1, /17 // ~136us
+	.mova TM2CT, 0
+	engint
+
+	// wait for end of lo pulse
+@@:
+	ifclear PA.PIN_JACDAC
+	  goto @b
+
+	.mova memidx$0, pkt_addr
+	.mova rx_buflimit, buffer_size+1
+
+	clear frm_sz // make sure packet is invalid, if we do not recv anything
+	mov a, 0
+	goto rx_wait_start
+
+IDSIZE equ 8
+
+.fill_id EXPAND
+	a = pkt_addr+4+IDSIZE-1
+	mov memidx$0, a
+	.mova isr0, IDSIZE
+@@:
+	mov a, isr0
+	call get_id
+	idxm memidx, a
+	dec memidx$0
+	dzsn isr0
+	goto @B
+ENDM
+
+.check_id EXPAND fail_lbl
+	a = pkt_addr+4+IDSIZE-1
+	mov memidx$0, a
+	.mova isr0, IDSIZE
+@@:
+	mov a, isr0
+	call get_id
+	mov isr1, a
+	idxm a, memidx
+	ifneq a, isr1
+	  goto fail_lbl
+	dec memidx$0
+	dzsn isr0
+	goto @B
+ENDM
+
+// requires a=1...8
+get_id:
+	pcadd a
+.IFDEF RELEASE
+	.User_Roll 12 BYTE, "genid.bat", "ids.txt"
+.ELSE
+	ret 0x01
+	ret 0x23
+	ret 0x45
+	ret 0x67
+	ret 0x89
+	ret 0xab
+	ret 0xcd
+	ret 0xef
+
+	// note that these two CRCs always differ by XOR 0xe77e regardless of device id
+	// this can possibly be used in future to only store one of them
+	ret 0x59 // crc of 0400 0123456789abcdef
+	ret 0xe5
+	ret 0x27 // crc of 0800 0123456789abcdef
+	ret 0x02
+	ret 0x12 // crc of 0c00 0123456789abcdef
+	ret 0xaf
+.ENDIF
+
+rx_start:
+	mov TM2CT, a
+	$ TM2S 8BIT, /1, /2	 // 2T
+	clear rx_data
+	nop
+	mov a, 0x01
+rx_next_bit:
+	ifset PA.PIN_JACDAC
+		or rx_data, a
+	nop
+	sl a
+	nop
+	ceqsn a, 0x80
+		goto rx_next_bit
+rx_lastbit:
+	nop
+	ifset PA.PIN_JACDAC
+		or rx_data, a
+	mov a, rx_data
+	idxm memidx, a   	// 2T
+	dzsn rx_buflimit    // rx_buflimit--
+		inc memidx$0    // when rx_buflimit reaches 0, we stop incrementing memidx
+	ifset ZF          	// if rx_buflimit==0
+		inc rx_buflimit //     rx_buflimit++ -> keep rx_buflimit at 0
+	mov a, 0
+	mov TM2CT, a
+// wait for serial transmission to start
+rx_wait_start:
+.repeat 20
+	ifclear PA.PIN_JACDAC
+	  goto rx_start
+.endm
+	goto rx_wait_start
+
+timeout:
+	INTEN = 0 // for reasons unknown the interrupts are not disabled here, at least when single-stepping in ICE
+
+	.set_log 1
+
+	// this is nested IRQ; we want to return to original code, not outer interrupt
+	// TODO: try fake popaf
+	mov a, SP
+	sub a, 2
+	mov SP, a
+
+leave_irq:
+	.blink_rx
+
+#ifdef CFG_BROADCAST
+	ifset frm_flags.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
+		goto check_service_class
+#endif
+    .check_id not_interested // uses isr0, isr1
+
+check_size:
+	// we have to check size before checking CRC
+	mov a, frm_sz
+	sub a, buffer_size-frame_header_size+1
+	ifclear CF
+	  goto pkt_error // it was a packet for us, but it was too large
+
+	// save crc_l/h for future comparison
+	.mova rx_data, crc_l
+	.mova isr2, crc_h
+	mov a, 0xff
+	mov crc_l, a
+	mov crc_h, a
+	.mova memidx$0, pkt_addr+2
+	mov a, frm_sz
+	add a, 10
+	call crc16 // uses isr0,1
+
+	mov a, crc_l
+	ifneq a, rx_data
+	  goto pkt_error
+	mov a, crc_h
+	ifneq a, isr2
+	  goto pkt_error
+
+	ifclear frm_flags.JD_FRAME_FLAG_COMMAND
+	  goto not_interested // this is a report
+	ifset frm_flags.JD_FRAME_FLAG_VNEXT
+	  goto pkt_error
+
+#ifdef CFG_BROADCAST
+	mov a, 1
+	ifset frm_flags.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
+		mov pkt_service_number, a
+#endif
+
+	if (frm_flags.JD_FRAME_FLAG_ACK_REQUESTED) {
+		set1 tx_pending.txp_ack
+		.mova ack_crc_l, crc_l
+		.mova ack_crc_h, crc_h
+	}
+
+	// sync the timer before packet processing - it may need the current value
+	call t16_sync
+
+	//
+	// Control service
+	//
+
+	mov a, pkt_service_number
+	ifneq a, 0
+		goto not_ctrl
+
+handle_ctrl_service:
+	mov a, pkt_service_command_h
+
+	if (a == JD_HIGH_CMD) {
+		mov a, pkt_service_command_l
+
+		if (a == JD_CONTROL_CMD_RESET) {
+			reset
+		}
+		if (a == JD_CONTROL_CMD_SET_STATUS_LIGHT) {
+			// first turn off LED
+			set0 blink.blink_status_on
+			// if any of rgb is non-zero
+			mov a, pkt_payload[0]
+			or a, pkt_payload[1]
+			or a, pkt_payload[2]
+			ifclear ZF
+				// we enable LED
+				set1 blink.blink_status_on
+			goto rx_process_end
+		}
+		if (a == JD_CONTROL_CMD_IDENTIFY) {
+			.mova blink, 0x0f
+		}
+
+		goto rx_process_end
+	}
+
+#ifdef CFG_RESET_IN
+	if (a == JD_HIGH_REG_RW_SET) {
+		mov a, pkt_service_command_l
+
+		if (a == JD_CONTROL_REG_RW_RESET_IN) {
+			set0 flags.f_reset_in // first disable reset-in
+			mov a, pkt_payload[3]
+			ifneq a, 0
+				goto pkt_invalid // they ask us to wait too long
+			mov a, pkt_payload[2]
+			sr a
+			sr a
+			ifset ZF
+				goto rx_process_end // keep disabled - timer was 0
+			set1 flags.f_reset_in // enable
+			add a, t16_262ms
+			mov t_reset, a // set timer
+		}
+	}
+#endif
+
+	goto rx_process_end
+
+not_ctrl:
+	ifneq a, 1
+		goto not_serv1
+	goto serv_rx
+
+not_serv1:
+rx_process_end:
+
+not_interested:
+_do_leave:
+	// sync the timer, in case we interrupted the main loop just before it checks for f_set_tx
+	call t16_sync
+	set0 flags.f_in_rx
+	call reset_tm2
+	$ INTEN = TM2
+	popaf
+	.set_log 0
+	reti
+
+pkt_overflow:
+pkt_invalid:
+pkt_error:
+	.pulse_log
+	.pulse_log
+	goto _do_leave
+
+//
+// Module: tx
+//
+
+#define tx_data isr1
+#define tx_cntdown isr2
+
+switch_to_rx:
+	call interrupt
+	goto loop
+
+try_tx:
+	.disint
+	// if f_set_tx is set, it means there was a reception interrupt very recently
+	// in that case we shall try tx later
+	if (flags.f_set_tx) {
+		engint
+		goto loop
+	}
+	ifclear PA.PIN_JACDAC
+		goto switch_to_rx
+	PA.PIN_JACDAC = 0 // set lo
+	PAC.PIN_JACDAC = 1 // set to output
+
+	.fill_id // uses isr0
+
+	PA.PIN_JACDAC = 1
+
+	call reset_tm2
+	$ TM2S 8BIT, /1, /6 // ~50us
+
+	call prep_tx // ~20-~50 cycles
+
+	mov a, pkt_size
+	add a, 3+4 // add pkt-header size + round up to word
+	and a, 0b1111_1100
+	mov frm_sz, a // frm_sz == 4 || 8 || 12
+	// initialize crc_l/h from the burned-in values, depending on packet size
+	sr a
+	add a, 7
+	mov isr0, a
+	call get_id
+	mov crc_l, a
+	mov a, isr0
+	add a, 1
+	call get_id
+	mov crc_h, a
+
+	.mova memidx$0, pkt_addr+frame_header_size
+	mov a, frm_sz // len
+	call crc16 // uses isr0, isr1
+
+	.mova memidx$0, pkt_addr
+	mov a, frame_header_size+1
+	add a, frm_sz
+	mov tx_cntdown, a
+
+@@:
+	t1sn INTRQ.TM2
+	goto @b
+
+	goto _stop
+
+tx_not_last:
+	PA.PIN_JACDAC = 0
+	mov a, 8
+	nop
+_nextbit:	
+	sr tx_data
+	ifset CF
+	  goto _bit1
+	nop
+	PA.PIN_JACDAC = 0
+	dzsn a
+	goto _nextbit
+	goto _stop
+
+_bit1:
+	PA.PIN_JACDAC = 1
+	dzsn a
+	goto _nextbit
+	goto _stop
+
+_stop:
+	idxm a, memidx // 2T
+	mov tx_data, a
+	inc memidx$0
+	PA.PIN_JACDAC = 1
+	nop
+	nop
+	nop
+	nop
+	dzsn tx_cntdown
+		goto tx_not_last
+tx_last:
+	nop
+	PA.PIN_JACDAC = 0
+	.delay 90
+	PA.PIN_JACDAC = 1
+	PAC.PIN_JACDAC = 0 // set to input
+	PAPH.PIN_JACDAC = 1
+	call reset_tm2
+	engint
+	goto loop
+
+//
+// Module: crc16
+//
+
+/*
+uint16_t jd_crc16(const void *data, uint32_t size) {
+    const uint8_t *ptr = (const uint8_t *)data;
+    uint16_t crc = 0xffff;
+    while (size--) {
+        uint8_t data = *ptr++;
+        uint8_t x = (crc >> 8) ^ data;
+        x ^= x >> 4;
+        crc = (crc << 8) ^ (x << 12) ^ (x << 5) ^ x;
+    }
+    return crc;
+}
+ */
+
+#define crc_len isr0
+#define crc_tmp isr1
+
+// ~27 cycles per byte
+crc16:
+	mov crc_len, a
+crc16_loop:
+	// uint8_t data = *ptr++;
+	idxm a, memidx
+	inc memidx$0
+	// uint8_t x = (crc >> 8) ^ data;
+	xor a, crc_h
+	mov crc_tmp, a
+	// x ^= x >> 4;
+	swap a
+	and a, 0x0f
+	xor crc_tmp, a // crc_tmp==x	
+	// crc = (crc << 8) ^ (x << 12) ^ (x << 5) ^ x; =>
+	// crc_h = crc_l ^ (x << 4) ^ (x >> 3)
+	mov a, crc_tmp
+	swap a
+	and a, 0xf0
+	xor a, crc_l
+	mov crc_h, a
+	mov a, crc_tmp
+	sr a
+	sr a
+	sr a
+	xor crc_h, a
+	// crc_l = (x << 5) ^ x
+	.mova crc_l, crc_tmp
+	swap a
+	and a, 0xf0
+	sl a
+	xor crc_l, a
+	// loop back
+	dzsn crc_len
+	goto crc16_loop
+	ret
+
+//
+// Module impl. if needed
+//
+
+	.t16_impl
+	.blink_impl
