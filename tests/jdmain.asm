@@ -25,7 +25,12 @@ loop:
 	.blink_process
 
 	// this sends first announce after 263ms, and each subsequent one every 526ms
-	.on_rising flags.f_announce_t16_bit, t16_262ms.0, <set1 tx_pending.txp_announce>
+	.on_rising flags.f_announce_t16_bit, t16_262ms.0, <set1 blink.blink_txp_announce>
+
+	ifset blink.blink_txp_announce
+		set1 tx_pending.txp_blink_mux
+	ifset blink.blink_txp_fw_id
+		set1 tx_pending.txp_blink_mux
 
 #ifdef CFG_RESET_IN
 	if (flags.f_reset_in) {
@@ -83,8 +88,24 @@ prep_tx:
 
 	.serv_prep_tx
 
-	if (tx_pending.txp_announce) {
-		set0 tx_pending.txp_announce
+#ifdef CFG_FW_ID
+	if (blink.blink_txp_fw_id) {
+		set0 blink.blink_txp_fw_id
+		set0 tx_pending.txp_blink_mux
+		.forc x, <0123>
+		mov a, (CFG_FW_ID >> (x * 8)) & 0xff
+		mov pkt_payload[x], a
+		.endm
+		.mova pkt_size, 4
+		clear pkt_service_number
+		.mova pkt_service_command_l, JD_CONTROL_REG_RO_FIRMWARE_IDENTIFIER
+		ret
+	}
+#endif
+
+	if (blink.blink_txp_announce) {
+		set0 blink.blink_txp_announce
+		set0 tx_pending.txp_blink_mux
 		// reset_cnt maxes out at 0xf	
 		mov a, t16_262ms
 		sr a

@@ -20,6 +20,7 @@
 #define JD_CONTROL_CMD_SET_STATUS_LIGHT 0x84
 
 #define JD_CONTROL_REG_RW_RESET_IN 0x80
+#define JD_CONTROL_REG_RO_FIRMWARE_IDENTIFIER 0x81
 
 #define JD_REG_RW_STREAMING_SAMPLES 0x03
 #define JD_REG_RW_STREAMING_INTERVAL 0x04
@@ -40,10 +41,10 @@ f_announce_t16_bit equ 5
 f_announce_rst_cnt_max equ 6
 // 7 free for services
 
-txp_announce equ 0
+txp_blink_mux equ 0 // announce of fw_id (depending on blink_txp_* bits)
 txp_ack equ 1
-txp_event equ 2
-// 3-5 used by sensor.asm
+txp_event equ 2 // not used if not using events
+// 3-7 reserved for service (3-5 used by sensor module)
 
 pkt_addr equ 12
 
@@ -264,10 +265,12 @@ ENDM
 // Module: blink
 //
 
-blink_identify equ 3
-blink_identify_was0 equ 4
-blink_disconnected equ 5
-blink_status_on equ 6
+blink_identify equ 2
+blink_identify_was0 equ 3
+blink_disconnected equ 4
+blink_status_on equ 5
+blink_txp_fw_id equ 6
+blink_txp_announce equ 7
 
 .blink_process EXPAND
 	PA.PIN_LED = 0
@@ -551,10 +554,10 @@ timeout:
 	.set_log 1
 
 	// this is nested IRQ; we want to return to original code, not outer interrupt
-	// TODO: try fake popaf
-	mov a, SP
-	sub a, 2
-	mov SP, a
+	popaf // this is really popping the address; we hope there's no problem writing junk to flags register
+	//mov a, SP
+	//sub a, 2
+	//mov SP, a
 
 leave_irq:
 	.blink_rx
@@ -663,6 +666,15 @@ handle_ctrl_service:
 			set1 flags.f_reset_in // enable
 			add a, t16_262ms
 			mov t_reset, a // set timer
+		}
+	}
+#endif
+
+#ifdef CFG_FW_ID
+	if (a == JD_HIGH_REG_RO_GET) {
+		mov a, pkt_service_command_l
+		if (a == JD_CONTROL_REG_RO_FIRMWARE_IDENTIFIER) {
+			set1 blink.blink_txp_fw_id
 		}
 	}
 #endif
