@@ -14,6 +14,7 @@ f_do_frame equ 7
 	BYTE    speed_h[3]
 	BYTE    speed_l[3]
 	BYTE    target[3]
+	BYTE    tmp
 
 .serv_init EXPAND
 	PAC.PIN_NPX = 1 // output
@@ -53,6 +54,7 @@ ENDM
 
 do_frame:
 	.forc i, <012>
+		.mova tmp, value_h[i]
 		mov a, speed_l[i]
 		add value_l[i], a
 		mov a, speed_h[i]
@@ -67,6 +69,9 @@ do_frame:
 		if (CF) {
 			// speed < 0
 			mov a, value_h[i]
+			sub tmp, a
+			ifset CF
+				goto @f.target // underflow
 			sub a, target[i]
 			ifset CF
 				goto @f.target
