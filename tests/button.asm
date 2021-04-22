@@ -1,8 +1,6 @@
 #define SERVICE_CLASS 0x1473a263
 #define SENSOR_SIZE 1
 
-	.include sensor.asm
-
 #define JD_BUTTON_EV_DOWN 0x01
 #define JD_BUTTON_EV_UP 0x02
 #define JD_BUTTON_EV_HOLD 0x81
@@ -11,6 +9,8 @@
 	BYTE    t_btn_hold
 	BYTE    btn_down_l
 	BYTE    btn_down_h
+
+	.sensor_impl
 
 .serv_init EXPAND
 	PAPH.PIN_BTN =   1 // pullup on btn
@@ -91,4 +91,4 @@ serv_rx:
 	}
 ENDM
 
-	.include events.asm
+	.ev_impl

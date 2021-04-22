@@ -1,3 +1,5 @@
+jd_main:
+	SP = main_st
 	.clear_memory
 	.rng_init
 	.t16_init
@@ -121,3 +123,10 @@ check_service_class:
 	.endm
 	goto check_size
 #endif
+
+//
+// Module impl. if needed
+//
+
+	.t16_impl
+	.blink_impl
