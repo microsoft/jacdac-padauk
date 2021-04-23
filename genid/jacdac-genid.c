@@ -29,15 +29,18 @@ int wmain(int argc, TCHAR* argv[], TCHAR* envp[]) {
 
   wchar_t localfile[_MAX_PATH + 30] = {0};
   mystrcpy(localfile, argv[0], _MAX_PATH);
-  wchar_t* lastslash = localfile;
+  wchar_t* lastslash = NULL;
   for (wchar_t* p = localfile; *p; p++) {
     if (*p == '\\')
       lastslash = p;
   }
-  mystrcpy(lastslash, L"\\rolling.txt", 20);
+  if (lastslash)
+    mystrcpy(lastslash, L"\\rolling.txt", 20);
+  else
+    mystrcpy(localfile, L"rolling.txt", 20);
 
   FILE* fp;
-  
+
   if (_wfopen_s(&fp, localfile, L"wt") || !fp) {
     printf("can't open rolling.txt\n");
     return 1;
@@ -52,7 +55,7 @@ int wmain(int argc, TCHAR* argv[], TCHAR* envp[]) {
       f_Ok = swscanf_s(argv[1], L"%d", &index) == 1;
   }
 
-  if(!f_Ok) {
+  if (!f_Ok) {
     printf("needs index arg\n");
     return 1;
   }
