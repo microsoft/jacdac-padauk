@@ -1,7 +1,6 @@
 # Random notes
 
 * almost all parts have 8 bit timer (in addition to 16 bit)
-* thinking 2kW/128bytes as min. reqs. (these all have 2 8-bit timers)
 
 ## PFS154
 * PWM0 (for RGB LED) on S8 pkg is on PA0, which is the only pin with INT

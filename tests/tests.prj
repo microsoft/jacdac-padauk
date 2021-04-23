@@ -17,8 +17,12 @@ Break6=No 0000 00FF
 Break7=No 0000 00FF
 Break8=No 0000 00FF
 [Ctrl_Break]
-Mark=41 1
+Mark=51 1
 ICE=0 6 2 CE4
 [HEAD]
 [DEPEND]
+~..\jd\jdheader.asm
+~..\jd\jdmain.asm
+~..\jd\button.asm
+~..\jd\npx.asm
 ~$:INC_PDK\PMS150C.INC
