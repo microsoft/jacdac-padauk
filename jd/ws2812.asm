@@ -17,7 +17,7 @@ f_do_frame equ 7
 	BYTE    tmp
 
 .serv_init EXPAND
-	PAC.PIN_NPX = 1 // output
+	PAC.PIN_WS2812 = 1 // output
 ENDM
 
 .serv_process EXPAND
@@ -93,24 +93,24 @@ do_frame:
 // Measured as:
 // 0.37us / 0.89us for 0
 // 0.62us / 0.63us for 1
-.npx_byte MACRO
+.ws2812_byte MACRO
 @@:
-	set1 PA.PIN_NPX
+	set1 PA.PIN_WS2812
 	sl a
 	ifclear CF
-	   set0 PA.PIN_NPX
+	   set0 PA.PIN_WS2812
 	nop
-	set0 PA.PIN_NPX
+	set0 PA.PIN_WS2812
 	nop
 	dzsn isr0
 		goto @b
 	set1 isr0.3
-	set1 PA.PIN_NPX
+	set1 PA.PIN_WS2812
 	sl a
 	ifclear CF
-	   set0 PA.PIN_NPX
+	   set0 PA.PIN_WS2812
 	dec isr0
-	set0 PA.PIN_NPX
+	set0 PA.PIN_WS2812
 	ifclear PA.PIN_JACDAC
 		set1 isr1.0
 	nop
@@ -122,7 +122,7 @@ ENDM
 		// assume GRB order (102)
 		.forc i, <102>
 		mov a, value_h[i]
-		.npx_byte
+		.ws2812_byte
 		.endm
 		ifset isr1.0
 			goto switch_to_rx

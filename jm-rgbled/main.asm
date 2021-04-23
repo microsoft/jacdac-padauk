@@ -21,8 +21,8 @@
 
 .include ../jd/jdheader.asm
 
-#define PIN_NPX 4
-.include ../jd/npx.asm
+#define PIN_WS2812 4
+.include ../jd/ws2812.asm
 
 
 main:

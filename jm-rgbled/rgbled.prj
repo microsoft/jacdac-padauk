@@ -23,5 +23,5 @@ ICE=0 6 2 CE4
 [DEPEND]
 ~..\jd\jdheader.asm
 ~..\jd\jdmain.asm
-~..\jd\npx.asm
+~..\jd\ws2812.asm
 ~$:INC_PDK\PMS150C.INC
