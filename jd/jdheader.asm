@@ -88,6 +88,14 @@ ENDM
 	.disgint
 ENDM
 
+// we can't call anything from the main app code with INT enabled - we could run out of stack
+// if we get hit by an RX INT
+.callnoint MACRO lbl
+	.disint
+	call lbl
+	engint
+ENDM
+
 .assert_not MACRO cond
 	ifset cond
 		call panic
@@ -292,9 +300,7 @@ blink_free_flag equ 7
 				dec blink
 				set0 blink.blink_identify_was0
 				if (!blink.blink_identify) {
-					.disint
-					call got_client_announce
-					engint
+					.callnoint got_client_announce
 				}
 			}
 		}

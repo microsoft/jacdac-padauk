@@ -20,9 +20,8 @@ pin_init:
 
 loop:
 	.assert_not PAC.PIN_JACDAC // we should be in input mode here
-	.disint
-	call t16_sync
-	engint
+
+	.callnoint t16_sync
 
 	.blink_process
 

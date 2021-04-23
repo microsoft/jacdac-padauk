@@ -81,41 +81,40 @@ do_channel:
 		sl a
 		// if speed is negative, this is normal
 		ifset CF
-			goto @f.speedneg
+			goto ch_speed_neg
 		// otherwise we reached the target
-		goto @f.target
+ch_reached_target:
+		clear speed_h[chidx]
+		clear speed_l[chidx]
+		.mova value_h[chidx], target[chidx]
+		clear value_l[chidx]
+		ret
 	}
 	if (a == 0) {
 		mov a, speed_l[chidx]
 		ifset ZF
-			goto @f.target
+			goto ch_reached_target
 		mov a, speed_h[chidx]
 	}
 	sl a
 	if (CF) {
-@@.speedneg:
+ch_speed_neg:
 		// speed < 0
 		mov a, value_h[chidx]
 		sub tmp, a
 		ifset CF
-			goto @f.target // underflow
+			goto ch_reached_target // underflow
 		sub a, target[chidx]
 		ifset CF
-			goto @f.target
+			goto ch_reached_target
 	} else {
 		mov a, target[chidx]
 		sub a, value_h[chidx]
 		ifset CF
-			goto @f.target
+			goto ch_reached_target
 	}
-	goto @f.quit
-@@.target:
-	clear speed_h[chidx]
-	clear speed_l[chidx]
-	.mova value_h[chidx], target[chidx]
-	clear value_l[chidx]
-@@.quit:
 	ret
+
 
 // Measured as:
 // 0.37us / 0.89us for 0
@@ -143,23 +142,14 @@ do_channel:
 	nop
 ENDM
 
-// we can't call anything with INT enabled - we could run out of stack
 do_frame:
-	.disint
-		call do_channel
-		call swap_01
-	engint
-	.disint
-		call do_channel
-		call swap_01
-	engint
-	.disint
-		call swap_02
-		call do_channel
-	engint
-	.disint
-		call swap_02
-	engint
+	.callnoint do_channel
+	.callnoint swap_01
+	.callnoint do_channel
+	.callnoint swap_01
+	.callnoint swap_02
+	.callnoint do_channel
+	.callnoint swap_02
 	// have to disable INT for bitbanging
 	.disint
 		.mova isr1, 0
