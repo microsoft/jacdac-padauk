@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="jacdac-genid.c">
+    <ClCompile Include="genid.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

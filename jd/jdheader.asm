@@ -493,7 +493,7 @@ ENDM
 get_id:
 	pcadd a
 .IFDEF RELEASE
-	.User_Roll 12 BYTE, "genid.bat", "ids.txt"
+	.User_Roll 14 BYTE, "genid.exe", "rolling.txt"
 .ELSE
 	ret 0x01
 	ret 0x23
