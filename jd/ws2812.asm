@@ -52,43 +52,70 @@ ENDM
 	}
 ENDM
 
-do_frame:
-	.forc i, <012>
-		.mova tmp, value_h[i]
-		mov a, speed_l[i]
-		add value_l[i], a
-		mov a, speed_h[i]
-		addc value_h[i], a
-		if (a == 0) {
-			mov a, speed_l[i]
-			ifset ZF
-				goto @f.target
-			mov a, speed_h[i]
-		}
+swap_01:
+	.swapm value_h[0], value_h[1]
+	.swapm value_l[0], value_l[1]
+	.swapm speed_h[0], speed_h[1]
+	.swapm speed_l[0], speed_l[1]
+	.swapm target[0], target[1]
+	ret
+
+swap_02:
+	.swapm value_h[0], value_h[2]
+	.swapm value_l[0], value_l[2]
+	.swapm speed_h[0], speed_h[2]
+	.swapm speed_l[0], speed_l[2]
+	.swapm target[0], target[2]
+	ret
+
+chidx equ 0
+
+do_channel:
+	.mova tmp, value_h[chidx]
+	mov a, speed_l[chidx]
+	add value_l[chidx], a
+	mov a, speed_h[chidx]
+	addc value_h[chidx], a
+	if (CF)	{
+		// overflow
 		sl a
-		if (CF) {
-			// speed < 0
-			mov a, value_h[i]
-			sub tmp, a
-			ifset CF
-				goto @f.target // underflow
-			sub a, target[i]
-			ifset CF
-				goto @f.target
-		} else {
-			mov a, target[i]
-			sub a, value_h[i]
-			ifset CF
-				goto @f.target
-		}
-		goto @f.quit
-	@@.target:
-		clear speed_h[i]
-		clear speed_l[i]
-		.mova value_h[i], target[i]
-		clear value_l[i]
-	@@.quit:
-	.endm
+		// if speed is negative, this is normal
+		ifset CF
+			goto @f.speedneg
+		// otherwise we reached the target
+		goto @f.target
+	}
+	if (a == 0) {
+		mov a, speed_l[chidx]
+		ifset ZF
+			goto @f.target
+		mov a, speed_h[chidx]
+	}
+	sl a
+	if (CF) {
+@@.speedneg:
+		// speed < 0
+		mov a, value_h[chidx]
+		sub tmp, a
+		ifset CF
+			goto @f.target // underflow
+		sub a, target[chidx]
+		ifset CF
+			goto @f.target
+	} else {
+		mov a, target[chidx]
+		sub a, value_h[chidx]
+		ifset CF
+			goto @f.target
+	}
+	goto @f.quit
+@@.target:
+	clear speed_h[chidx]
+	clear speed_l[chidx]
+	.mova value_h[chidx], target[chidx]
+	clear value_l[chidx]
+@@.quit:
+	ret
 
 // Measured as:
 // 0.37us / 0.89us for 0
@@ -116,6 +143,24 @@ do_frame:
 	nop
 ENDM
 
+// we can't call anything with INT enabled - we could run out of stack
+do_frame:
+	.disint
+		call do_channel
+		call swap_01
+	engint
+	.disint
+		call do_channel
+		call swap_01
+	engint
+	.disint
+		call swap_02
+		call do_channel
+	engint
+	.disint
+		call swap_02
+	engint
+	// have to disable INT for bitbanging
 	.disint
 		.mova isr1, 0
 		.mova isr0, 7

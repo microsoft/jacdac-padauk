@@ -67,6 +67,12 @@ ENDM
 	mov dst, a
 ENDM
 
+.swapm MACRO x, y
+	mov a, x
+	xch y
+	mov x, a
+ENDM
+
 .clear_memory MACRO
 	.mova memidx$0, _SYS(SIZE.RAM)-1
 	clear memidx$1
