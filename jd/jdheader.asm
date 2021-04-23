@@ -41,10 +41,11 @@ f_announce_t16_bit equ 5
 f_announce_rst_cnt_max equ 6
 // 7 free for services
 
-txp_blink_mux equ 0 // announce of fw_id (depending on blink_txp_* bits)
+txp_announce equ 0
 txp_ack equ 1
 txp_event equ 2 // not used if not using events
-// 3-7 reserved for service (3-5 used by sensor module)
+// 3-6 reserved for service (3-5 used by sensor module)
+txp_fw_id equ 7
 
 pkt_addr equ 12
 
@@ -265,22 +266,23 @@ ENDM
 // Module: blink
 //
 
-blink_identify equ 2
-blink_identify_was0 equ 3
-blink_disconnected equ 4
-blink_status_on equ 5
-blink_txp_fw_id equ 6
-blink_txp_announce equ 7
+blink_identify_mask equ 0x0f
+
+blink_identify equ 3
+blink_identify_was0 equ 4
+blink_disconnected equ 5
+blink_status_on equ 6
+blink_free_flag equ 7
 
 .blink_process EXPAND
 	PA.PIN_LED = 0
 	if (blink.blink_identify) {
 		if (!blink.blink_identify_was0) {
-			ifclear t16_16ms.6
+			ifclear t16_16ms.2
 				set1 blink.blink_identify_was0
 		} else {
 			PA.PIN_LED = 1
-			if (t16_16ms.6) {
+			if (t16_16ms.2) {
 				dec blink
 				set0 blink.blink_identify_was0
 				if (!blink.blink_identify) {
@@ -300,7 +302,7 @@ blink_txp_announce equ 7
 			}
 		}
 		if (blink.blink_disconnected) {
-			ifset t16_262ms.2
+			ifclear t16_262ms.2
 				PA.PIN_LED = 1
 		} else {
 			mov a, t16_262ms
@@ -343,6 +345,8 @@ ENDM
 .blink_impl EXPAND
 got_client_announce:
 	set0 blink.blink_disconnected
+	ifset blink.blink_identify
+	  ret
 	mov a, t16_262ms
 	sr a
 	and a, 0x3
@@ -643,7 +647,7 @@ handle_ctrl_service:
 			goto rx_process_end
 		}
 		if (a == JD_CONTROL_CMD_IDENTIFY) {
-			.mova blink, 0x0f
+			.mova blink, blink_identify_mask
 		}
 
 		goto rx_process_end
@@ -674,7 +678,7 @@ handle_ctrl_service:
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
 		if (a == JD_CONTROL_REG_RO_FIRMWARE_IDENTIFIER) {
-			set1 blink.blink_txp_fw_id
+			set1 tx_pending.txp_fw_id
 		}
 	}
 #endif
