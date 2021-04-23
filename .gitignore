@@ -2,3 +2,7 @@
 *.tmp
 *.pdk
 *.PDK
+genid/Debug
+genid/Release
+genid/*.user
+genid/.vs
