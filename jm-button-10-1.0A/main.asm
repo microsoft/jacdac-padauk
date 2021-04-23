@@ -17,16 +17,12 @@
 // #define CFG_T16_32BIT 1 // 1/1
 #define CFG_BROADCAST 1 // 20/0
 #define CFG_RESET_IN 1 // 24/1
-#define CFG_FW_ID 0x3646ae27 // 24/0
+#define CFG_FW_ID 0x3f9ca24e // 24/0
 
 .include ../jd/jdheader.asm
 
-//#define PIN_BTN 4
-//.include button.asm // 214/11 (incl. events and sensor)
-
-#define PIN_NPX 4
-.include ../jd/npx.asm
-
+#define PIN_BTN 4
+.include button.asm // 214/11 (incl. events and sensor)
 
 main:
 	.ADJUST_IC	SYSCLK=IHRC/2, IHRC=16MHz, VDD=3.3V
