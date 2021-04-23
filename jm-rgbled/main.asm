@@ -8,6 +8,8 @@
 	.Code_Option	LVR		3.0V
 //}}PADAUK_CODE_OPTION
 
+//#define RELEASE 1
+
 // all pins on PA
 #define PIN_LED	3
 #define PIN_JACDAC 6
