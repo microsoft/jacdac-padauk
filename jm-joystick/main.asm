@@ -28,8 +28,10 @@
 
 .include ../jd/jdheader.asm
 
+#define JOY_X_OFF_POS 9
 #define PIN_JOY_X 4
 #define PIN_JOY_X_ADC PA4
+#define JOY_Y_OFF_POS 5
 #define PIN_JOY_Y 0
 #define PIN_JOY_Y_ADC PA0
 .include ../jd/joystick.asm

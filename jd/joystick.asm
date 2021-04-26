@@ -28,18 +28,39 @@ do_joy_sample:
 	AD_START = 1
 	while (!AD_DONE) {}
 	mov a, ADCR
-	sub a, 127
+#ifdef JOY_X_OFF_POS
+	add a, JOY_X_OFF_POS
+	ifset CF
+		mov a, 255
+#endif
+#ifdef JOY_X_OFF_NEG
+	sub a, JOY_X_OFF_NEG
+	ifset CF
+		mov a, 0
+#endif
+	sub a, 128
 	mov adc_tmp, a
 
 	$ ADCC Enable, PIN_JOY_Y_ADC
 	AD_START = 1
 	while (!AD_DONE) {}
 	mov a, ADCR
+#ifdef JOY_Y_OFF_POS
+	add a, JOY_Y_OFF_POS
+	ifset CF
+		mov a, 255
+#endif
+#ifdef JOY_Y_OFF_NEG
+	sub a, JOY_Y_OFF_NEG
+	ifset CF
+		mov a, 0
+#endif
 	sub a, 127
+	neg a
 
 	.disint
-		mov sensor_state[2], a
-		.mova sensor_state[0], adc_tmp
+		mov sensor_state[3], a
+		.mova sensor_state[1], adc_tmp
 	engint
 
 	$ ADCC Disable
