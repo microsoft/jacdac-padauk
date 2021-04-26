@@ -26,5 +26,6 @@
 
 main:
 	.ADJUST_IC	SYSCLK=IHRC/2, IHRC=16MHz, VDD=3.3V
+	PADIER = (1 << PIN_JACDAC) | (1 << PIN_BTN)
 
 .include ../jd/jdmain.asm
