@@ -22,7 +22,7 @@
 .include ../jd/jdheader.asm
 
 #define PIN_BTN 4
-.include ../jd/button.asm // 214/11 (incl. events and sensor)
+.include ../services/button.asm // 214/11 (incl. events and sensor)
 
 main:
 	.ADJUST_IC	SYSCLK=IHRC/2, IHRC=16MHz, VDD=3.3V

@@ -448,7 +448,7 @@ interrupt:
 	ifset flags.f_in_rx
 	  goto timeout
 	ifset PA.PIN_JACDAC
-	  reti
+	  reti // 8 cycles to here
 
 	pushaf
 
@@ -531,8 +531,9 @@ get_id:
 .ENDIF
 
 rx_start:
-	mov TM2CT, a
-	$ TM2S 8BIT, /1, /2	 // 2T
+	mov TM2CT, a // a is 0 here
+	// setup TM2 to expire in 16T
+	$ TM2S 8BIT, /1, /2
 	clear rx_data
 	nop
 	mov a, 0x01

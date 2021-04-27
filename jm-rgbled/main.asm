@@ -24,7 +24,7 @@
 .include ../jd/jdheader.asm
 
 #define PIN_WS2812 4
-.include ../jd/ws2812.asm
+.include ../services/ws2812.asm
 
 
 main:

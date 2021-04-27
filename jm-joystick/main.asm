@@ -34,7 +34,7 @@
 #define JOY_Y_OFF_POS 5
 #define PIN_JOY_Y 0
 #define PIN_JOY_Y_ADC PA0
-.include ../jd/joystick.asm
+.include ../services/joystick.asm
 
 
 main:
