@@ -292,11 +292,13 @@ blink_free_flag equ 7
 	PA.PIN_LED = 0
 	if (blink.blink_identify) {
 		if (!blink.blink_identify_was0) {
-			ifclear t16_16ms.2
+			ifclear t16_16ms.4
 				set1 blink.blink_identify_was0
 		} else {
 			PA.PIN_LED = 1
-			if (t16_16ms.2) {
+			if (t16_16ms.4) {
+				// TODO optimize one bit in counter
+				dec blink
 				dec blink
 				set0 blink.blink_identify_was0
 				if (!blink.blink_identify) {
