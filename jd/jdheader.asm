@@ -27,6 +27,10 @@
 #define JD_REG_RO_READING 0x01
 #define JD_REG_RO_VARIANT 0x07
 
+#define JD_EV_ACTIVE 0x1
+#define JD_EV_INACTIVE 0x2
+#define JD_EV_CHANGE 0x3
+
 frame_header_size equ 12
 crc_size equ 2
 payload_size equ 8

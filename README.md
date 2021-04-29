@@ -120,6 +120,12 @@ The transmission code performs the following steps:
 To build programs you'll need to obtain the [PADAUK IDE](http://www.padauk.com.tw/en/technical/index.aspx?kind=26).
 To flash the microcontroller you'll need to also download the program writer and obtain a physical hardware programmer.
 
+The following warnings are expected:
+```
+...\jdheader.asm(...): The calculation of Stack maybe error !
+...\jdheader.asm(...): The code is overlapped. [FPPA 0, Interrupt] : ... to ...
+```
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a

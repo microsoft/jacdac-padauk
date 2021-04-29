@@ -18,7 +18,7 @@
 // all pins on PA
 #define PIN_LED	3
 #define PIN_JACDAC 6
-#define PIN_LOG 7
+#define PIN_LOG 5
 
 // Cost given in comment: words of flash/bytes of RAM
 // #define CFG_T16_32BIT 1 // 1/1
@@ -27,6 +27,15 @@
 #define CFG_FW_ID 0x328d0f9d // 24/0
 
 .include ../jd/jdheader.asm
+
+#define PIN_BTN_A 7
+
+.joystick_button_probe EXPAND
+	mov a, 0x00
+	ifset PA.PIN_BTN_A
+		or a, JD_JOYSTICK_BUTTONS_A
+	mov sensor_state[0], a
+ENDM
 
 #define JOY_X_OFF_POS 9
 #define PIN_JOY_X 4
@@ -39,7 +48,7 @@
 
 main:
 	.ADJUST_IC	SYSCLK=IHRC/2, IHRC=16MHz, VDD=3.3V
-	PADIER = (1 << PIN_JACDAC)
+	PADIER = (1 << PIN_JACDAC) | (1 << PIN_BTN_A)
 	PBDIER = 0
 
 .include ../jd/jdmain.asm
