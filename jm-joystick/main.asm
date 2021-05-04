@@ -15,6 +15,15 @@
 
 //#define RELEASE 1
 
+/*
+Intended assignment (S8):
+
+VDD                           | GND
+PA7 - sink of potentiometer   | PA0 - Jacdac
+PA6 - BTN of joystick         | PA4 - X wiper
+PA5 - sink of status LED      | PA3 - Y wiper
+*/
+
 // all pins on PA
 #define PIN_LED	3
 #define PIN_JACDAC 6

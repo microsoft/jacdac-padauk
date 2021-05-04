@@ -35,7 +35,7 @@ ENDM
 .serv_prep_tx MACRO
 	if (tx_pending.txp_avail_buttons) {
 		set0 tx_pending.txp_avail_buttons
-		.mova pkt_payload[0], JD_JOYSTICK_BUTTONS_A
+		.mova pkt_payload[0], <JD_JOYSTICK_BUTTONS_A>
 		.mova pkt_size, 4
 		.mova pkt_service_command_l, JD_JOYSTICK_REG_RO_BUTTONS_AVAILABLE
 		ret
