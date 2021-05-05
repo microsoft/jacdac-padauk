@@ -31,6 +31,12 @@ ENDM
 do_light_sample:
 	.t16_set t16_1ms, t_sample, 20
 
+#ifdef PIN_ANALOG_PWR
+	PAC.PIN_ANALOG_PWR = 1
+	PA.PIN_ANALOG_PWR = 1
+	.delay 1000
+#endif
+
 	$ ADCM 8BIT, /16
 
 	$ ADCC Enable, PIN_ADC
@@ -38,9 +44,15 @@ do_light_sample:
 	while (!AD_DONE) {}
 	mov a, ADCR
 
-	mov sensor_state[0], a
+	mov sensor_state[1], a
 
 	$ ADCC Disable
+
+#ifdef PIN_ANALOG_PWR
+	PAC.PIN_ANALOG_PWR = 0
+	PA.PIN_ANALOG_PWR = 0
+#endif
+
 
 	goto loop
 

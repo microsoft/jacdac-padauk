@@ -39,8 +39,9 @@ PA5 - sink of status LED      | PA3
 .include ../jd/jdheader.asm
 
 #define PIN_ADC PA4
+// #define PIN_ANALOG_PWR 7 - causes bad readings
 
-.include ../services/joystick.asm
+.include ../services/lightlevel.asm
 
 
 main:
