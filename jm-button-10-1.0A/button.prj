@@ -23,5 +23,5 @@ ICE=0 6 2 CE4
 [DEPEND]
 ~..\jd\jdheader.asm
 ~..\jd\jdmain.asm
-~..\jd\button.asm
+~..\services\button.asm
 ~$:INC_PDK\PMS150C.INC
