@@ -49,6 +49,12 @@ ENDM
 do_joy_sample:
 	.t16_set t16_1ms, t_sample, 20
 
+#ifdef PIN_JOY_SINK
+	PAC.PIN_JOY_SINK = 1
+	PA.PIN_JOY_SINK = 0
+	.delay 100
+#endif
+
 	$ ADCM 8BIT, /16
 
 	$ ADCC Enable, PIN_JOY_X_ADC
@@ -97,6 +103,11 @@ do_joy_sample:
 		clear sensor_state[i]
 	.endm
 	.joystick_button_probe
+
+#ifdef PIN_JOY_SINK
+	//PA.PIN_JOY_SINK = 1
+	PAC.PIN_JOY_SINK = 0
+#endif
 
 // (128-LVL0)/128 is the threshold to activate button
 // (128-LVL1)/128 is the threshold to de-activate button

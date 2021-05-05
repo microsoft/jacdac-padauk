@@ -284,6 +284,22 @@ ENDM
 // Module: blink
 //
 
+#ifdef LED_SINK
+.led_on MACRO
+	PA.PIN_LED = 0
+ENDM
+.led_off MACRO
+	PA.PIN_LED = 1
+ENDM
+#else
+.led_on MACRO
+	PA.PIN_LED = 1
+ENDM
+.led_off MACRO
+	PA.PIN_LED = 0
+ENDM
+#endif
+
 blink_identify_mask equ 0x0f
 
 blink_identify equ 3
@@ -293,13 +309,13 @@ blink_status_on equ 6
 blink_free_flag equ 7
 
 .blink_process EXPAND
-	PA.PIN_LED = 0
+	.led_off
 	if (blink.blink_identify) {
 		if (!blink.blink_identify_was0) {
 			ifclear t16_16ms.4
 				set1 blink.blink_identify_was0
 		} else {
-			PA.PIN_LED = 1
+			.led_on
 			if (t16_16ms.4) {
 				// TODO optimize one bit in counter
 				dec blink
@@ -321,7 +337,7 @@ blink_free_flag equ 7
 		}
 		if (blink.blink_disconnected) {
 			ifclear t16_262ms.2
-				PA.PIN_LED = 1
+				.led_on
 		} else {
 			mov a, t16_262ms
 			sr a
@@ -330,7 +346,7 @@ blink_free_flag equ 7
 			ifclear ZF
 				set1 blink.blink_disconnected
 			if (blink.blink_status_on) {
-				PA.PIN_LED = 1
+				.led_on
 			}
 		}
 	}
@@ -352,9 +368,9 @@ ENDM
 		and a, JD_AD0_IS_CLIENT_MSK
 		if (!ZF) {
 			call got_client_announce
-			PA.PIN_LED = 1
+			.led_on
 			.delay 250
-			PA.PIN_LED = 0
+			.led_off
 			goto _do_leave
 		}
 	}

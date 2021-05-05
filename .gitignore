@@ -6,3 +6,5 @@ genid/Debug
 genid/Release
 genid/*.user
 genid/.vs
+rolling.txt
+genid.exe

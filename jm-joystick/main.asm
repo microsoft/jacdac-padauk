@@ -16,7 +16,7 @@
 //#define RELEASE 1
 
 /*
-Intended assignment (S8):
+Assignment (S8 package, or lower pins of S14/S16):
 
 VDD                           | GND
 PA7 - sink of potentiometer   | PA0 - Jacdac
@@ -25,9 +25,10 @@ PA5 - sink of status LED      | PA3 - Y wiper
 */
 
 // all pins on PA
-#define PIN_LED	3
-#define PIN_JACDAC 6
-#define PIN_LOG 5
+#define PIN_LED	5
+#define LED_SINK 1
+#define PIN_JACDAC 0
+// #define PIN_LOG 1
 
 // Cost given in comment: words of flash/bytes of RAM
 // #define CFG_T16_32BIT 1 // 1/1
@@ -37,7 +38,7 @@ PA5 - sink of status LED      | PA3 - Y wiper
 
 .include ../jd/jdheader.asm
 
-#define PIN_BTN_A 7
+#define PIN_BTN_A 6
 
 .joystick_button_probe EXPAND
 	mov a, 0x00
@@ -46,12 +47,11 @@ PA5 - sink of status LED      | PA3 - Y wiper
 	mov sensor_state[0], a
 ENDM
 
+#define PIN_JOY_SINK 7
 #define JOY_X_OFF_POS 9
-#define PIN_JOY_X 4
 #define PIN_JOY_X_ADC PA4
 #define JOY_Y_OFF_POS 5
-#define PIN_JOY_Y 0
-#define PIN_JOY_Y_ADC PA0
+#define PIN_JOY_Y_ADC PA3
 .include ../services/joystick.asm
 
 
