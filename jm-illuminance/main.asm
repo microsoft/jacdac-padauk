@@ -39,7 +39,10 @@ PA5 - sink of status LED      | PA3
 .include ../jd/jdheader.asm
 
 #define PIN_ADC PA4
-#define LX_MULT 60 // ADC*LX_MULT/4 == LUX
+#define LX_MULT 46 // ADC*LX_MULT/4 == LUX
+
+// assume 3 LSB error (which is probably too low)
+#define LX_ERROR (LX_MULT*3)
 
 .include ../services/illuminance.asm
 

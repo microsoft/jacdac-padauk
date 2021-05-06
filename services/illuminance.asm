@@ -17,22 +17,14 @@ ENDM
 	.sensor_process
 ENDM
 
-.serv_prep_tx MACRO
+.serv_prep_tx EXPAND
 	if (tx_pending.txp_reading_error) {
 		set0 tx_pending.txp_reading_error
-		// this assumes error is 1/256 of reading
-		.mova pkt_payload[0], sensor_state[1]
-		.mova pkt_payload[1], sensor_state[2]
-		.mova pkt_payload[2], sensor_state[3]
-		// which is unlikely, so we quadruple it
-		.forc x, <01>
-			sl pkt_payload[0]
-			slc pkt_payload[1]
-			slc pkt_payload[2]
-			slc pkt_payload[3]
-		.endm
-		.mova pkt_size, 4
-		.mova pkt_service_command_l, JD_REG_RO_READING_ERROR
+		pkt_payload[0] = 0
+		pkt_payload[1] = LX_ERROR & 0xff
+		pkt_payload[2] = (LX_ERROR >> 8) & 0xff
+		pkt_size = 4
+		pkt_service_command_l = JD_REG_RO_READING_ERROR
 		ret
 	}
 
