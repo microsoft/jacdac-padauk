@@ -481,7 +481,7 @@ interrupt:
 	.rng_add_entropy
 
 	set1 flags.f_in_rx
-	$ TM2S 8BIT, /1, /17 // ~136us
+	$ TM2S 8BIT, /1, /25 // ~200us
 	.mova TM2CT, 0
 	engint
 
