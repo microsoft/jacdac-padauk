@@ -22,6 +22,6 @@ ICE=0 6 2 CE4
 [HEAD]
 [DEPEND]
 ~$:INC_PDK\PMS150C.INC
-~C:\development\software\padauk\ms-jd-padauk\jd\jdheader.asm
-~C:\development\software\padauk\ms-jd-padauk\services\button.asm
-~C:\development\software\padauk\ms-jd-padauk\jd\jdmain.asm
+~..\jd\jdheader.asm
+~..\services\button.asm
+~..\jd\jdmain.asm
