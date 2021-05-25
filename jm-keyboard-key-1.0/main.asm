@@ -1,6 +1,6 @@
 .CHIP   PMS150C
 // Give package map to writer	pcount	VDD	PA0	PA3	PA4	PA5	PA6	PA7	GND	SHORTC_MSK1	SHORTC_MASK1	SHIFT
-//.writer package 		6, 	1, 	0,	4, 	27, 	25,	26, 	0,	28, 	0x0007, 	0x0007, 	0
+.writer package 		6, 	1, 	0,	4, 	27, 	25,	26, 	0,	28, 	0x0007, 	0x0007, 	0
 //{{PADAUK_CODE_OPTION
 	.Code_Option	Security	Disable
 	.Code_Option	Bootup_Time	Fast
