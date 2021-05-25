@@ -13,6 +13,8 @@ in particular the PADAUK PMS150C, PMS171B, and PMS131.
 * `scripts` contains various utility scripts (they are not currently used in build process)
 * `jm-*` contains project files and `main.asm` files for several Jacdac modules; they each include the base Jacdac implementation and a single service
 
+If you create a new device folder, run `./check.sh` script to check for duplicate firmware IDs.
+
 ## Requirements
 
 To run (software) UART at 1mbaud (as required by Jacdac), the MCU has to run at 8MHz (or more, but PADAUK chips only do up to 8MHz).
