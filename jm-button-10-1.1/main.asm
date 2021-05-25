@@ -17,7 +17,7 @@
 // #define CFG_T16_32BIT 1 // 1/1
 #define CFG_BROADCAST 1 // 20/0
 #define CFG_RESET_IN 1 // 24/1
-#define CFG_FW_ID 0x3f9ca24e // 24/0
+#define CFG_FW_ID 0x95b66a3f // 24/0
 
 .include ../jd/jdheader.asm
 
