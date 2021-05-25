@@ -399,7 +399,8 @@ ENDM
 	WORD    memidx
 	BYTE    flags
 	BYTE    tx_pending
-	BYTE	isr0, isr1, isr2
+	BYTE	isr0, isr1
+	BYTE    rx_data
 
 	BYTE    blink
 
@@ -420,7 +421,7 @@ ENDM
 	BYTE	pkt_service_command_l
 	BYTE	pkt_service_command_h
 	BYTE	pkt_payload[payload_size]
-	BYTE	rx_data // this is overwritten during rx if packet too long (but that's fine)
+	BYTE	isr2 // this is overwritten during rx if packet too long (but that's fine)
 	BYTE    rng_x
 
 	// so far:
@@ -446,6 +447,13 @@ ENDM
 //
 
 #define rx_buflimit isr0
+
+#ifdef PWR_SERVICE
+#define rx_flags isr1
+#define rx_prev_data isr2
+#define rx_pwr_neq rx_flags.0
+#define rx_pwr_flip_sw rx_flags.1
+#endif
 
 .rx_init EXPAND
 	PAPH.PIN_JACDAC = 1
@@ -495,6 +503,9 @@ interrupt:
 
 	clear frm_sz // make sure packet is invalid, if we do not recv anything
 	mov a, 0
+#ifdef PWR_SERVICE
+	clear rx_flags
+#endif
 	goto rx_wait_start
 
 IDSIZE equ 8
@@ -555,12 +566,73 @@ get_id:
 
 rx_start:
 	mov TM2CT, a // a is 0 here
-	// setup TM2 to expire in 16T
+	// setup TM2 to expire in 16us
 	$ TM2S 8BIT, /1, /2
+
+#ifdef PWR_SERVICE
+pwr_test_size equ 8
+	.mova rx_prev_data, rx_data
+	clear rx_data
+	// ----------------------------------------------------
+	ifset PA.PIN_JACDAC
+		set1 rx_data.0
+	ifset rx_pwr_flip_sw
+		set0 PA.PIN_SWITCH
+	set0 rx_pwr_flip_sw
+	nop
+	mov a, memidx$0
+	// ----------------------------------------------------
+	ifset PA.PIN_JACDAC
+		set1 rx_data.1
+	sub a, pkt_addr + (pwr_test_size + 2)
+	ifclear OV
+	  mov a, -(pwr_test_size + 2)
+	add a, (pwr_test_size + 3)
+	sl a
+	// ----------------------------------------------------
+	ifset PA.PIN_JACDAC
+		set1 rx_data.2
+
+	pcadd a
+	// a is always even - so this is unreachable
+	nop
+	// case of memidx==0 or memidx>9; we want the match to always succeed
+	mov a, rx_prev_data
+	goto _bit3
+	// cases of memidx==1,...,8
+.for v, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
+	mov a, v
+	goto _bit3
+.endm
+	// cases of memidx==9 - i.e., we are just past the first 8 bytes, now is time to flip the switch if they match
+	set1 rx_pwr_flip_sw
+	goto _bit3
+	
+_bit3:
+	// ----------------------------------------------------
+	ifset PA.PIN_JACDAC
+		set1 rx_data.3
+	ifset rx_pwr_neq // if no match
+	    set0 rx_pwr_flip_sw // do not flip switch
+	sub a, rx_prev_data
+	ifclear ZF
+	   set1 rx_pwr_neq	// if no match, clear the match flag
+	// ----------------------------------------------------
+	ifset PA.PIN_JACDAC
+		set1 rx_data.4
+	nop
+	nop
+	nop
+	nop
+	mov a, 0x20 // use regular loop reception from bit 5 on
+#else
 	clear rx_data
 	nop
 	mov a, 0x01
+#endif
+
 rx_next_bit:
+	// ----------------------------------------------------
 	ifset PA.PIN_JACDAC
 		or rx_data, a
 	nop
@@ -569,7 +641,12 @@ rx_next_bit:
 	ceqsn a, 0x80
 		goto rx_next_bit
 rx_lastbit:
+#ifdef PWR_SERVICE
+	// re-enable switch; it was disabled (if any) for 7 out of 8 bits, and this is a convienient place to re-enable it
+	set1 PA.PIN_SWITCH
+#else
 	nop
+#endif
 	ifset PA.PIN_JACDAC
 		or rx_data, a
 	mov a, rx_data
@@ -579,7 +656,9 @@ rx_lastbit:
 	ifset ZF          	// if rx_buflimit==0
 		inc rx_buflimit //     rx_buflimit++ -> keep rx_buflimit at 0
 	mov a, 0
-	mov TM2CT, a
+	mov TM2CT, a		// clear TM2CT before the wait (of 16us before start bit)
+#endif
+
 // wait for serial transmission to start
 rx_wait_start:
 .repeat 20
