@@ -657,7 +657,6 @@ rx_lastbit:
 		inc rx_buflimit //     rx_buflimit++ -> keep rx_buflimit at 0
 	mov a, 0
 	mov TM2CT, a		// clear TM2CT before the wait (of 16us before start bit)
-#endif
 
 // wait for serial transmission to start
 rx_wait_start:
