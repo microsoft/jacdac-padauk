@@ -1,5 +1,6 @@
 const fs = require("fs")
 const path = require("path")
+let fix = 0
 
 function looksRandom(n) {
     const s = n.toString(16)
@@ -38,6 +39,12 @@ function validateFile(prjFn) {
         if (ln == "[LINKS]")
             links = true
     }
+    const prj1 = prj.replace(/^~[a-z]:\\.*\\jacdac-padauk\\/img, "~..\\")
+    if (prj1 != prj) {
+        if (!fix) fail(`absolute paths found in ${prjFn}; use --fix flag to fix`)
+        console.log("  fixing absolute paths")
+        fs.writeFileSync(prjFn, prj1)
+    }
     if (!mainASM) fail(`can't find main.asm in ${prjFn}`)
     mainASM = path.join(path.dirname(prjFn), mainASM)
     console.log(`  main: ${mainASM}`)
@@ -60,7 +67,11 @@ function validateFile(prjFn) {
 }
 
 const files = process.argv.slice(2)
+if (files[0] === "--fix") {
+    fix = 1
+    files.shift()
+}
 if (files.length == 0)
-    fail(`usage: node ${process.argv[1]} folder/device.prj...`)
+    fail(`usage: node ${process.argv[1]} [--fix] folder/device.prj...`)
 files.forEach(validateFile)
 console.log("All good!")
