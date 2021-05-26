@@ -773,7 +773,7 @@ handle_ctrl_service:
 				goto rx_process_end // keep disabled - timer was 0
 			add a, t16_262ms
 			ifset ZF
-			  inc a // t_reset==0 means disabled; avoid that
+			  mov a, 1 // t_reset==0 means disabled; avoid that
 			mov t_reset, a // set timer
 		}
 		goto rx_process_end
@@ -991,9 +991,9 @@ crc16_loop:
 //
 
 
-txp_streaming_samples equ txp_serv5_sensor
-txp_streaming_interval equ txp_serv6_sensor
-txp_reading equ txp_serv7_sensor
+#define txp_streaming_samples txp_serv5_sensor
+#define txp_streaming_interval txp_serv6_sensor
+#define txp_reading txp_serv7_sensor
 
 .sensor_impl EXPAND
 	BYTE streaming_samples
