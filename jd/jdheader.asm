@@ -727,7 +727,9 @@ check_size:
 	  goto pkt_error
 
 #ifdef CFG_BROADCAST
-	mov a, 1
+	mov a, pkt_device_id[3]
+	ifclear ZF
+	    mov a, 1
 	ifset frm_flags.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
 		mov pkt_service_number, a
 #endif

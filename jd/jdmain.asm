@@ -131,11 +131,24 @@ prep_tx:
 
 #ifdef CFG_BROADCAST
 check_service_class:
-	.forc x, <0123>
+	mov a, pkt_device_id[3]
+	ifset ZF
+		goto check_ctrl
+	ifneq a, (SERVICE_CLASS >> (3 * 8)) & 0xff
+		goto not_interested
+	.forc x, <210>
 	mov a, pkt_device_id[x]
 	ifneq a, (SERVICE_CLASS >> (x * 8)) & 0xff
 		goto not_interested
 	.endm
+	goto check_size
+
+check_ctrl:
+	or a, pkt_device_id[2]
+	or a, pkt_device_id[1]
+	or a, pkt_device_id[0]
+	ifclear ZF
+		goto not_interested
 	goto check_size
 #endif
 
