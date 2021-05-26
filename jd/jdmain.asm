@@ -3,6 +3,20 @@ jd_main:
 	.clear_memory
 	.rng_init
 	.t16_init
+
+	// random delay 0-1000us
+	call rng_next
+	mov isr0, a
+random_delay:
+	call t16_sync
+	mov a, t16_4us
+	sub a, isr0
+	ifclear OV
+		goto random_delay
+	// restart our clock, so it's hopefully offset from other devices
+	clear t16_low$0
+	stt16 t16_low
+
 	.rx_init
 
 pin_init:
@@ -12,8 +26,6 @@ pin_init:
 #ifdef PIN_LOG
 	PAC.PIN_LOG 	= 	1 // output
 #endif
-
-	// TODO add random delay here, so that not all modules start at once?
 
 	call t16_sync
 	.serv_init
@@ -34,7 +46,7 @@ loop:
 
 	if (f_set_tx) {
 		set0 f_set_tx
-		.rng_next
+		.callnoint rng_next
 		and a, 31
 		add a, 12
 		mov t_tx, a
@@ -166,3 +178,4 @@ check_ctrl:
 //
 
 	.t16_impl
+	.rng_impl

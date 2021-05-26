@@ -281,13 +281,19 @@ ENDM
 	xor rng_x, a
 ENDM
 
+.rng_next MACRO
+	.callnoint rng_next
+ENDM
+
+
 /*
 This has period of 255 (so we just exclude 0)
 	x ^= x << 1
 	x ^= x >> 1
 	x ^= x << 2
 */
-.rng_next EXPAND
+.rng_impl EXPAND
+rng_next:
 	mov a, rng_x
 	ifset ZF // this can happen when we "add entropy"
 		mov a, 42
@@ -301,6 +307,7 @@ This has period of 255 (so we just exclude 0)
 	sl a
 	xor rng_x, a
 	mov a, rng_x
+	ret
 ENDM
 
 
