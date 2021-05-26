@@ -8,6 +8,12 @@
 #define JD_AD0_FRAMES_SUPPORTED 0x04
 #define JD_AD0_IS_CLIENT 0x08
 
+#define JD_SERVICE_INDEX_CONTROL 0x00
+#define JD_SERVICE_INDEX_MY_SERVICE 0x01
+#define JD_SERVICE_INDEX_BROADCAST 0x3d
+#define JD_SERVICE_INDEX_PIPE 0x3e
+#define JD_SERVICE_INDEX_ACK 0x3f
+
 #define JD_AD0_IS_CLIENT_MSK 0x08
 
 #define JD_HIGH_CMD 0x00
@@ -28,9 +34,13 @@
 #define JD_REG_RO_VARIANT 0x07
 #define JD_REG_RO_READING_ERROR 0x06
 
+#define JD_REG_RW_INTENSITY 0x01
+#define JD_REG_RW_VALUE 0x02
+
 #define JD_EV_ACTIVE 0x1
 #define JD_EV_INACTIVE 0x2
 #define JD_EV_CHANGE 0x3
+#define JD_EV_STATUS_CODE_CHANGED 0x4
 
 frame_header_size equ 12
 crc_size equ 2
@@ -785,6 +795,7 @@ handle_ctrl_service:
 			add a, t16_262ms
 			mov t_reset, a // set timer
 		}
+		goto rx_process_end
 	}
 #endif
 
@@ -858,6 +869,11 @@ try_tx:
 
 	call prep_tx // ~20-~50 cycles
 
+#ifdef PWR_SERVICE
+	ifset frm_flags.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
+	    goto _skip_crc
+#endif
+
 	mov a, pkt_size
 	add a, 3+4 // add pkt-header size + round up to word
 	and a, 0b1111_1100
@@ -877,6 +893,7 @@ try_tx:
 	mov a, frm_sz // len
 	call crc16 // uses isr0, isr1
 
+_skip_crc:
 	.mova memidx$0, pkt_addr
 	mov a, frame_header_size+1
 	add a, frm_sz
@@ -1132,9 +1149,17 @@ ENDM
 ENDM
 
 .ev_impl EXPAND
-	BYTE ev_code
 	BYTE ev_cnt
 	BYTE t_ev
+
+// ev_send has to be first
+ev_send:
+	inc ev_cnt
+	set1 tx_pending.txp_event
+	set1 flags.f_ev1
+	set0 flags.f_ev2
+	.t16_set t16_1ms, t_ev, 20
+	goto loop
 
 ev_flush:
 	set1 tx_pending.txp_event
@@ -1147,15 +1172,6 @@ ev_flush:
 	.t16_set t16_1ms, t_ev, 100
 	goto loop
 	
-ev_send:
-	mov ev_code, a
-	inc ev_cnt
-	set1 tx_pending.txp_event
-	set1 flags.f_ev1
-	set0 flags.f_ev2
-	.t16_set t16_1ms, t_ev, 20
-	goto loop
-
 ev_prep_tx:
 	set0 tx_pending.txp_event
 	.serv_ev_payload

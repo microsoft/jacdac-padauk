@@ -149,7 +149,6 @@ ENDM
 		ifneq a, sensor_state[i]
 			set1 blink.blink_free_flag
 	.endm
-	mov a, JD_EV_CHANGE
 	ifset blink.blink_free_flag
 		goto ev_send
 
@@ -168,13 +167,10 @@ serv_rx:
 
 .serv_ev_payload EXPAND
 	.mova pkt_size, 4
-	mov a, ev_code
-	mov pkt_service_command_l, a
-	if (a == JD_EV_CHANGE) {
-		.forc i, BTN_STATE
-			.mova pkt_payload[i], sensor_state[i]
-		.endm
-	}
+	.mova pkt_service_command_l, JD_EV_CHANGE
+	.forc i, BTN_STATE
+		.mova pkt_payload[i], sensor_state[i]
+	.endm
 ENDM
 
 	.ev_impl

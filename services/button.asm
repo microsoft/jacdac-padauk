@@ -13,6 +13,7 @@ txp_analog_button equ 6
 	BYTE    t_btn_hold
 	BYTE    btn_down_l
 	BYTE    btn_down_h
+	BYTE    ev_code
 
 	.sensor_impl
 
@@ -61,7 +62,7 @@ button_inactive:
 		mov btn_down_h, a
 
 	mov a, JD_BUTTON_EV_UP
-	goto ev_send
+	goto ev_send_btn
 button_active:
 	ifset ZF
 		goto button_down
@@ -70,7 +71,7 @@ button_active:
 button_hold:
 	.t16_set t16_16ms, t_btn_hold, 31
 	mov a, JD_BUTTON_EV_HOLD
-	goto ev_send
+	goto ev_send_btn
 button_down:
 	.mova sensor_state[0], 0xff
 	.mova sensor_state[1], 0xff
@@ -80,7 +81,7 @@ button_down:
 	engint
 	.t16_set t16_16ms, t_btn_hold, 31
 	mov a, JD_BUTTON_EV_DOWN
-	goto ev_send
+	goto ev_send_btn
 
 serv_rx:
 	mov a, pkt_service_command_h
@@ -113,4 +114,7 @@ serv_rx:
 	}
 ENDM
 
+ev_send_btn:
+	mov ev_code, a
+	// this starts with ev_send
 	.ev_impl
