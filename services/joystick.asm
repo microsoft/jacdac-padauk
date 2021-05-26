@@ -33,15 +33,15 @@ ENDM
 ENDM
 
 .serv_prep_tx MACRO
-	if (tx_pending.txp_avail_buttons) {
-		set0 tx_pending.txp_avail_buttons
+	if (txp_avail_buttons) {
+		set0 txp_avail_buttons
 		.mova pkt_payload[0], <JD_JOYSTICK_BUTTONS_A>
 		.mova pkt_size, 4
 		.mova pkt_service_command_l, JD_JOYSTICK_REG_RO_BUTTONS_AVAILABLE
 		ret
 	}
 
-	ifset blink.blink_txp_event
+	ifset txp_event
 		goto ev_prep_tx
 	.sensor_prep_tx
 ENDM
@@ -143,13 +143,13 @@ ENDM
 		or sensor_state[0], a
 	engint
 
-	set0 flags.f_serv1
+	set0 f_serv1
 	.forc i, BTN_STATE
 		mov a, prev_btn[i]
 		ifneq a, sensor_state[i]
-			set1 flags.f_serv1
+			set1 f_serv1
 	.endm
-	ifset flags.f_serv1
+	ifset f_serv1
 		goto ev_send
 
 	goto loop
@@ -159,7 +159,7 @@ serv_rx:
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
 		if (a == JD_JOYSTICK_REG_RO_BUTTONS_AVAILABLE) {
-			set1 tx_pending.txp_avail_buttons
+			set1 txp_avail_buttons
 		}
 	}
 

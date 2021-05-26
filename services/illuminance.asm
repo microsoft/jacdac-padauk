@@ -18,8 +18,8 @@ ENDM
 ENDM
 
 .serv_prep_tx EXPAND
-	if (tx_pending.txp_reading_error) {
-		set0 tx_pending.txp_reading_error
+	if (txp_reading_error) {
+		set0 txp_reading_error
 		pkt_payload[0] = 0
 		pkt_payload[1] = LX_ERROR & 0xff
 		pkt_payload[2] = (LX_ERROR >> 8) & 0xff
@@ -54,7 +54,7 @@ serv_rx:
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
 		if (a == JD_REG_RO_READING_ERROR) {
-			set1 tx_pending.txp_reading_error
+			set1 txp_reading_error
 		}
 	}
 	.sensor_rx

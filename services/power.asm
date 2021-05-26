@@ -37,18 +37,18 @@ ENDM
 ENDM
 
 .serv_prep_tx MACRO
-	ifset blink.blink_txp_event
+	ifset txp_event
 		goto ev_prep_tx
 
-	if (tx_pending.txp_pwr_status) {
-		set0 tx_pending.txp_pwr_status
+	if (txp_pwr_status) {
+		set0 txp_pwr_status
 		inc pkt_size // ==1
 		.mova pkt_payload[0], pwr_status
 		ret
 	}
 
-	if (tx_pending.txp_pwr_allowed) {
-		set0 tx_pending.txp_pwr_allowed
+	if (txp_pwr_allowed) {
+		set0 txp_pwr_allowed
 		inc pkt_size // ==1
 		// data[0] = (pwr_status != Disallowed)
 		mov a, pwr_status
@@ -58,8 +58,8 @@ ENDM
 		ret
 	}
 
-	if (tx_pending.txp_pwr_shutdown) {
-		set0 tx_pending.txp_pwr_shutdown
+	if (txp_pwr_shutdown) {
+		set0 txp_pwr_shutdown
 
 		// TODO
 		.mova crc_l, 0xff
@@ -91,14 +91,14 @@ serv_rx:
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
 		if (a == JD_POWER_REG_RO_POWER_STATUS) {
-			set1 tx_pending.txp_pwr_status
+			set1 txp_pwr_status
 		}
 		goto rx_process_end	
 	}
 	if (a == JD_HIGH_REG_RW_GET) {
 		mov a, pkt_service_command_l
 		if (a == JD_POWER_REG_RW_ALLOWED) {
-			set1 tx_pending.txp_pwr_allowed
+			set1 txp_pwr_allowed
 		}
 		goto rx_process_end	
 	}

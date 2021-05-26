@@ -29,15 +29,15 @@ ENDM
 ENDM
 
 .serv_prep_tx MACRO
-	if (tx_pending.txp_analog_button) {
-		set0 tx_pending.txp_analog_button
+	if (txp_analog_button) {
+		set0 txp_analog_button
 		clear pkt_payload[0]
 		.mova pkt_size, 1
 		.mova pkt_service_command_l, JD_LED_REG_RO_ANALOG
 		ret
 	}
 
-	ifset blink.blink_txp_event
+	ifset txp_event
 		goto ev_prep_tx
 	.sensor_prep_tx
 ENDM
@@ -88,7 +88,7 @@ serv_rx:
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
 		if (a == JD_LED_REG_RO_ANALOG) {
-			set1 tx_pending.txp_analog_button
+			set1 txp_analog_button
 		}
 	}
 	.sensor_rx

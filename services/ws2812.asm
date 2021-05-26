@@ -21,12 +21,12 @@ f_do_frame equ f_serv0
 ENDM
 
 .serv_process EXPAND
-	.on_rising flags.f_do_frame, t16_1ms.5, <goto do_frame>
+	.on_rising f_do_frame, t16_1ms.5, <goto do_frame>
 ENDM
 
 .serv_prep_tx EXPAND
-	if (tx_pending.txp_color) {
-		set0 tx_pending.txp_color
+	if (txp_color) {
+		set0 txp_color
 		.set_ro_reg JD_LED_REG_RO_COLOR
 		.forc i, <012>
 		.mova pkt_payload[i], value_h[i]
@@ -35,16 +35,16 @@ ENDM
 		ret
 	}
 
-	if (tx_pending.txp_led_count) {
-		set0 tx_pending.txp_led_count
+	if (txp_led_count) {
+		set0 txp_led_count
 		.set_ro_reg JD_LED_REG_RO_LED_COUNT
 		.mova pkt_payload[0], 1 // 1 LED
 		.mova pkt_size, 2
 		ret
 	}
 
-	if (tx_pending.txp_variant) {
-		set0 tx_pending.txp_variant
+	if (txp_variant) {
+		set0 txp_variant
 		.set_ro_reg JD_REG_RO_VARIANT
 		.mova pkt_payload[0], 0x2 // Variant - SMD
 		.mova pkt_size, 1
@@ -212,17 +212,17 @@ serv_rx:
 		mov a, pkt_service_command_l
 
 		if (a == JD_LED_REG_RO_COLOR) {
-			set1 tx_pending.txp_color
+			set1 txp_color
 			goto rx_process_end
 		}
 
 		if (a == JD_REG_RO_VARIANT) {
-			set1 tx_pending.txp_variant
+			set1 txp_variant
 			goto rx_process_end
 		}
 
 		if (a == JD_LED_REG_RO_LED_COUNT) {
-			set1 tx_pending.txp_led_count
+			set1 txp_led_count
 		}
 	}
 

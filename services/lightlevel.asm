@@ -17,8 +17,8 @@ ENDM
 ENDM
 
 .serv_prep_tx MACRO
-	if (tx_pending.txp_variant) {
-		set0 tx_pending.txp_variant
+	if (txp_variant) {
+		set0 txp_variant
 		.mova pkt_payload[0], 3 // Ambient
 		.mova pkt_size, 1
 		.mova pkt_service_command_l, JD_REG_RO_VARIANT
@@ -61,7 +61,7 @@ serv_rx:
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
 		if (a == JD_REG_RO_VARIANT) {
-			set1 tx_pending.txp_variant
+			set1 txp_variant
 		}
 	}
 	.sensor_rx

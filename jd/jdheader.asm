@@ -47,23 +47,23 @@ crc_size equ 2
 payload_size equ 8
 buffer_size equ (frame_header_size + 4 + payload_size)
 
-f_in_rx equ 0
-f_set_tx equ 1
-f_announce_rst_cnt_max equ 2
-f_ev1 equ 3
-f_ev2 equ 4
-f_announce_t16_bit equ 5
-f_serv0 equ 6
-f_serv1 equ 7
+#define f_in_rx flags.0
+#define f_set_tx flags.1
+#define f_announce_rst_cnt_max flags.2
+#define f_ev1 flags.3
+#define f_ev2 flags.4
+#define f_announce_t16_bit flags.5
+#define f_serv0 flags.6
+#define f_serv1 flags.7
 
-txp_serv0 equ 0
-txp_serv1 equ 1
-txp_serv2 equ 2
-txp_serv3 equ 3
-txp_serv4 equ 4
-txp_serv5_sensor equ 5
-txp_serv6_sensor equ 6
-txp_serv7_sensor equ 7
+#define txp_serv0 tx_pending.0
+#define txp_serv1 tx_pending.1
+#define txp_serv2 tx_pending.2
+#define txp_serv3 tx_pending.3
+#define txp_serv4 tx_pending.4
+#define txp_serv5_sensor tx_pending.5
+#define txp_serv6_sensor tx_pending.6
+#define txp_serv7_sensor tx_pending.7
 
 pkt_addr equ 12
 
@@ -324,30 +324,30 @@ ENDM
 ENDM
 #endif
 
-blink_cnt0 equ 0
-blink_cnt1 equ 1
-blink_disconnected equ 2
-blink_status_on equ 3
+#define blink_cnt0 blink.0
+#define blink_cnt1 blink.1
+#define blink_disconnected blink.2
+#define blink_status_on blink.3
 
-blink_txp_announce equ 4
-blink_txp_ack equ 5
-blink_txp_fw_id equ 6
-blink_txp_event equ 7
+#define txp_announce blink.4
+#define txp_ack blink.5
+#define txp_fw_id blink.6
+#define txp_event blink.7
 
 .blink_process EXPAND
 	.led_off
-	if (blink.blink_disconnected) {
+	if (blink_disconnected) {
 		ifclear t16_262ms.2
 			.led_on
 	} else {
-		ifset blink.blink_status_on
+		ifset blink_status_on
 			.led_on
 		mov a, t16_262ms
 		sr a
 		sub a, blink
 		and a, 0x02
 		ifclear ZF
-			set1 blink.blink_disconnected
+			set1 blink_disconnected
 	}
 ENDM
 
@@ -366,12 +366,12 @@ ENDM
 		mov a, pkt_payload[1]
 		and a, JD_AD0_IS_CLIENT_MSK
 		if (!ZF) {
-			set0 blink.blink_disconnected
+			set0 blink_disconnected
 			mov a, t16_262ms
 			sr a
 			and a, 0x3
-			set0 blink.0
-			set0 blink.1
+			set0 blink_cnt0
+			set0 blink_cnt1
 			or blink, a
 
 			.led_on
@@ -460,7 +460,7 @@ reset_tm2:
 	mov TM2CT, a
 	INTRQ.TM2 = 0
 	$ TM2S 8BIT, /1, /1
-	set1 flags.f_set_tx
+	set1 f_set_tx
 	ret
 
 	// TODO we have about 8 instructions free here
@@ -468,7 +468,7 @@ reset_tm2:
 	.romadr	0x10            // interrupt vector
 interrupt:
 	INTRQ.TM2 = 0
-	ifset flags.f_in_rx
+	ifset f_in_rx
 	  goto timeout
 	ifset PA.PIN_JACDAC
 	  reti // 8 cycles to here
@@ -480,7 +480,7 @@ interrupt:
 	// seed the PRNG with reception time of each packet
 	.rng_add_entropy
 
-	set1 flags.f_in_rx
+	set1 f_in_rx
 	$ TM2S 8BIT, /1, /25 // ~200us
 	.mova TM2CT, 0
 	engint
@@ -717,7 +717,7 @@ check_size:
 #endif
 
 	if (frm_flags.JD_FRAME_FLAG_ACK_REQUESTED) {
-		set1 blink.blink_txp_ack
+		set1 txp_ack
 		.mova ack_crc_l, crc_l
 		.mova ack_crc_h, crc_h
 	}
@@ -744,14 +744,14 @@ handle_ctrl_service:
 		}
 		if (a == JD_CONTROL_CMD_SET_STATUS_LIGHT) {
 			// first turn off LED
-			set0 blink.blink_status_on
+			set0 blink_status_on
 			// if any of rgb is non-zero
 			mov a, pkt_payload[0]
 			or a, pkt_payload[1]
 			or a, pkt_payload[2]
 			ifclear ZF
 				// we enable LED
-				set1 blink.blink_status_on
+				set1 blink_status_on
 		}
 
 		goto rx_process_end
@@ -784,7 +784,7 @@ handle_ctrl_service:
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
 		if (a == JD_CONTROL_REG_RO_FIRMWARE_IDENTIFIER) {
-			set1 blink.blink_txp_fw_id
+			set1 txp_fw_id
 		}
 	}
 #endif
@@ -803,7 +803,7 @@ not_interested:
 _do_leave:
 	// sync the timer, in case we interrupted the main loop just before it checks for f_set_tx
 	call t16_sync
-	set0 flags.f_in_rx
+	set0 f_in_rx
 	call reset_tm2
 	$ INTEN = TM2
 	popaf
@@ -832,7 +832,7 @@ try_tx:
 	.disint
 	// if f_set_tx is set, it means there was a reception interrupt very recently
 	// in that case we shall try tx later
-	if (flags.f_set_tx) {
+	if (f_set_tx) {
 		engint
 		goto loop
 	}
@@ -1046,11 +1046,11 @@ ENDM
 		mov a, pkt_service_command_l
 
 		if (a == JD_REG_RW_STREAMING_SAMPLES) {
-			set1 tx_pending.txp_streaming_samples
+			set1 txp_streaming_samples
 		}
 
 		if (a == JD_REG_RW_STREAMING_INTERVAL) {
-			set1 tx_pending.txp_streaming_interval
+			set1 txp_streaming_interval
 		}
 
 		goto rx_process_end
@@ -1061,7 +1061,7 @@ ENDM
 		mov a, pkt_service_command_l
 
 		if (a == JD_REG_RO_READING) {
-			set1 tx_pending.txp_reading
+			set1 txp_reading
 			// goto rx_process_end
 		}
 		
@@ -1084,30 +1084,30 @@ do_stream:
 			dec streaming_samples
 	engint
 	.t16_set t16_1ms, t_streaming, streaming_interval
-	set1 tx_pending.txp_reading
+	set1 txp_reading
 	goto loop
 skip_stream:
 ENDM
 
 .sensor_prep_tx EXPAND
-	if (tx_pending.txp_streaming_samples) {
-		set0 tx_pending.txp_streaming_samples
+	if (txp_streaming_samples) {
+		set0 txp_streaming_samples
 		.setcmd JD_HIGH_REG_RW_GET, JD_REG_RW_STREAMING_SAMPLES
 		.mova pkt_payload[0], streaming_samples
 		.mova pkt_size, 1
 		ret
 	}
 
-	if (tx_pending.txp_streaming_interval) {
-		set0 tx_pending.txp_streaming_interval
+	if (txp_streaming_interval) {
+		set0 txp_streaming_interval
 		.setcmd JD_HIGH_REG_RW_GET, JD_REG_RW_STREAMING_INTERVAL
 		.mova pkt_payload[0], streaming_interval
 		.mova pkt_size, 4
 		ret
 	}
 
-	if (tx_pending.txp_reading) {
-		set0 tx_pending.txp_reading
+	if (txp_reading) {
+		set0 txp_reading
 		_cnt => 0
 	.repeat SENSOR_SIZE
 		.mova pkt_payload[_cnt], sensor_state[_cnt]
@@ -1124,7 +1124,7 @@ ENDM
 //
 
 .ev_process EXPAND
-	if (flags.f_ev1) {
+	if (f_ev1) {
 		.t16_chk t16_1ms, t_ev, <goto ev_flush>
 	}
 ENDM
@@ -1136,25 +1136,25 @@ ENDM
 // ev_send has to be first
 ev_send:
 	inc ev_cnt
-	set1 blink.blink_txp_event
-	set1 flags.f_ev1
-	set0 flags.f_ev2
+	set1 txp_event
+	set1 f_ev1
+	set0 f_ev2
 	.t16_set t16_1ms, t_ev, 20
 	goto loop
 
 ev_flush:
-	set1 blink.blink_txp_event
-	if (flags.f_ev2) {
-		set0 flags.f_ev1
-		set0 flags.f_ev2
+	set1 txp_event
+	if (f_ev2) {
+		set0 f_ev1
+		set0 f_ev2
 		goto loop
 	}
-	set1 flags.f_ev2
+	set1 f_ev2
 	.t16_set t16_1ms, t_ev, 100
 	goto loop
 	
 ev_prep_tx:
-	set0 blink.blink_txp_event
+	set0 txp_event
 	.serv_ev_payload
 	mov a, ev_cnt
 	or a, 0x80

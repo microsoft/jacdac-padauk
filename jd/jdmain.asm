@@ -7,7 +7,7 @@ jd_main:
 
 pin_init:
 	PAC.PIN_LED 	= 	1 // output
-	set1 blink.blink_disconnected // blink at start
+	set1 blink_disconnected // blink at start
 
 #ifdef PIN_LOG
 	PAC.PIN_LOG 	= 	1 // output
@@ -26,14 +26,14 @@ loop:
 	.blink_process
 
 	// this sends first announce after 263ms, and each subsequent one every 526ms
-	.on_rising flags.f_announce_t16_bit, t16_262ms.0, <set1 blink.blink_txp_announce>
+	.on_rising f_announce_t16_bit, t16_262ms.0, <set1 txp_announce>
 
 #ifdef CFG_RESET_IN
 	.t16_chk_nz t16_262ms, t_reset, reset
 #endif
 
-	if (flags.f_set_tx) {
-		set0 flags.f_set_tx
+	if (f_set_tx) {
+		set0 f_set_tx
 		.rng_next
 		and a, 31
 		add a, 12
@@ -75,8 +75,8 @@ prep_tx:
 	clear pkt_payload[3]
 	clear frm_flags
 
-	if (blink.blink_txp_ack) {
-		set0 blink.blink_txp_ack
+	if (txp_ack) {
+		set0 txp_ack
 		.mova pkt_service_number, 0x3f
 		.setcmd ack_crc_h, ack_crc_l
 		ret
@@ -85,8 +85,8 @@ prep_tx:
 	.serv_prep_tx
 
 #ifdef CFG_FW_ID
-	if (blink.blink_txp_fw_id) {
-		set0 blink.blink_txp_fw_id
+	if (txp_fw_id) {
+		set0 txp_fw_id
 		.forc x, <0123>
 		mov a, (CFG_FW_ID >> (x * 8)) & 0xff
 		mov pkt_payload[x], a
@@ -98,16 +98,16 @@ prep_tx:
 	}
 #endif
 
-	if (blink.blink_txp_announce) {
-		set0 blink.blink_txp_announce
+	if (txp_announce) {
+		set0 txp_announce
 		// reset_cnt maxes out at 0xf	
 		mov a, t16_262ms
 		sr a
 		add a, 1
 		and a, 0xf
 		ifset ZF
-			set1 flags.f_announce_rst_cnt_max
-		ifset flags.f_announce_rst_cnt_max
+			set1 f_announce_rst_cnt_max
+		ifset f_announce_rst_cnt_max
 			mov a, 0xf
 		mov pkt_payload[0], a
 #ifdef CFG_BROADCAST
@@ -131,7 +131,7 @@ prep_tx:
 		mov a, t16_262ms
 		and a, 0x0e
 		ifset ZF
-			set0 blink.blink_status_on
+			set0 blink_status_on
 
 		ret
 	}
