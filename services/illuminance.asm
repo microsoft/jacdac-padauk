@@ -1,7 +1,7 @@
 #define SERVICE_CLASS 0x1e6ecaf2
 #define SENSOR_SIZE 4
 
-txp_reading_error equ 6
+txp_reading_error equ txp_serv0
 
 	BYTE	t_sample
 	BYTE	tmp, adc_rd, lx_mul

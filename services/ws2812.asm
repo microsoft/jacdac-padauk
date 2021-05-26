@@ -3,11 +3,11 @@
 #define JD_LED_REG_RO_COLOR 0x80
 #define JD_LED_REG_RO_LED_COUNT 0x83
 
-txp_color equ 3
-txp_led_count equ 4
-txp_variant equ 5
+txp_color equ txp_serv0
+txp_led_count equ txp_serv1
+txp_variant equ txp_serv2
 
-f_do_frame equ 7
+f_do_frame equ f_serv0
 
 	BYTE    value_h[3]
 	BYTE    value_l[3]

@@ -7,7 +7,7 @@
 
 #define JD_LED_REG_RO_ANALOG 0x80
 
-txp_analog_button equ 6
+txp_analog_button equ txp_serv0
 
 	BYTE	t_sample
 	BYTE    t_btn_hold
@@ -37,7 +37,7 @@ ENDM
 		ret
 	}
 
-	ifset tx_pending.txp_event
+	ifset blink.blink_txp_event
 		goto ev_prep_tx
 	.sensor_prep_tx
 ENDM

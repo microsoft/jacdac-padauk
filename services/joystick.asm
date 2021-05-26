@@ -18,7 +18,7 @@
 	BYTE    adc_tmp
 	BYTE    prev_btn[1]
 
-txp_avail_buttons equ 6
+txp_avail_buttons equ txp_serv0
 
 	.sensor_impl
 
@@ -41,7 +41,7 @@ ENDM
 		ret
 	}
 
-	ifset tx_pending.txp_event
+	ifset blink.blink_txp_event
 		goto ev_prep_tx
 	.sensor_prep_tx
 ENDM
@@ -143,13 +143,13 @@ ENDM
 		or sensor_state[0], a
 	engint
 
-	set0 blink.blink_free_flag
+	set0 flags.f_serv1
 	.forc i, BTN_STATE
 		mov a, prev_btn[i]
 		ifneq a, sensor_state[i]
-			set1 blink.blink_free_flag
+			set1 flags.f_serv1
 	.endm
-	ifset blink.blink_free_flag
+	ifset flags.f_serv1
 		goto ev_send
 
 	goto loop

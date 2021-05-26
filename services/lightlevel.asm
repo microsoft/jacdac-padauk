@@ -1,7 +1,7 @@
 #define SERVICE_CLASS 0x17dc9a1c
 #define SENSOR_SIZE 2
 
-txp_variant equ 6
+txp_variant equ txp_serv0
 
 	BYTE	t_sample
 

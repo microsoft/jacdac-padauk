@@ -21,7 +21,7 @@
 #define JD_HIGH_REG_RW_GET 0x10
 #define JD_HIGH_REG_RO_GET 0x11
 
-#define JD_CONTROL_CMD_IDENTIFY 0x81
+// #define JD_CONTROL_CMD_IDENTIFY 0x81 - not supported anymore
 #define JD_CONTROL_CMD_RESET 0x82
 #define JD_CONTROL_CMD_SET_STATUS_LIGHT 0x84
 
@@ -49,18 +49,21 @@ buffer_size equ (frame_header_size + 4 + payload_size)
 
 f_in_rx equ 0
 f_set_tx equ 1
-f_reset_in equ 2
+f_announce_rst_cnt_max equ 2
 f_ev1 equ 3
 f_ev2 equ 4
 f_announce_t16_bit equ 5
-f_announce_rst_cnt_max equ 6
-// 7 free for services
+f_serv0 equ 6
+f_serv1 equ 7
 
-txp_announce equ 0
-txp_ack equ 1
-txp_event equ 2 // not used if not using events
-// 3-6 reserved for service (3-5 used by sensor module)
-txp_fw_id equ 7
+txp_serv0 equ 0
+txp_serv1 equ 1
+txp_serv2 equ 2
+txp_serv3 equ 3
+txp_serv4 equ 4
+txp_serv5_sensor equ 5
+txp_serv6_sensor equ 6
+txp_serv7_sensor equ 7
 
 pkt_addr equ 12
 
@@ -197,6 +200,16 @@ ENDM
 		handler
 ENDM
 
+.t16_chk_nz MACRO t16_v, tim, handler
+	mov a, t16_v
+	if (!ZF) {
+		sub a, tim
+		and a, 0x80
+		ifset ZF
+			handler
+	}
+ENDM
+
 .t16_set MACRO t16_v, tim, num
 	mov a, t16_v
 	add a, num
@@ -311,55 +324,30 @@ ENDM
 ENDM
 #endif
 
-blink_identify_mask equ 0x0f
+blink_cnt0 equ 0
+blink_cnt1 equ 1
+blink_disconnected equ 2
+blink_status_on equ 3
 
-blink_identify equ 3
-blink_identify_was0 equ 4
-blink_disconnected equ 5
-blink_status_on equ 6
-blink_free_flag equ 7
+blink_txp_announce equ 4
+blink_txp_ack equ 5
+blink_txp_fw_id equ 6
+blink_txp_event equ 7
 
 .blink_process EXPAND
 	.led_off
-	if (blink.blink_identify) {
-		if (!blink.blink_identify_was0) {
-			ifclear t16_16ms.4
-				set1 blink.blink_identify_was0
-		} else {
+	if (blink.blink_disconnected) {
+		ifclear t16_262ms.2
 			.led_on
-			if (t16_16ms.4) {
-				// TODO optimize one bit in counter
-				dec blink
-				dec blink
-				set0 blink.blink_identify_was0
-				if (!blink.blink_identify) {
-					.callnoint got_client_announce
-				}
-			}
-		}
 	} else {
-		if (t16_262ms.3) {
-			set0 blink.blink_identify_was0
-		} else {
-			if (!blink.blink_identify_was0) {
-				set1 blink.blink_identify_was0
-				set0 blink.blink_status_on
-			}
-		}
-		if (blink.blink_disconnected) {
-			ifclear t16_262ms.2
-				.led_on
-		} else {
-			mov a, t16_262ms
-			sr a
-			sub a, blink
-			and a, 0x02
-			ifclear ZF
-				set1 blink.blink_disconnected
-			if (blink.blink_status_on) {
-				.led_on
-			}
-		}
+		ifset blink.blink_status_on
+			.led_on
+		mov a, t16_262ms
+		sr a
+		sub a, blink
+		and a, 0x02
+		ifclear ZF
+			set1 blink.blink_disconnected
 	}
 ENDM
 
@@ -378,27 +366,21 @@ ENDM
 		mov a, pkt_payload[1]
 		and a, JD_AD0_IS_CLIENT_MSK
 		if (!ZF) {
-			call got_client_announce
+			set0 blink.blink_disconnected
+			mov a, t16_262ms
+			sr a
+			and a, 0x3
+			set0 blink.0
+			set0 blink.1
+			or blink, a
+
 			.led_on
 			.delay 250
 			.led_off
+
 			goto _do_leave
 		}
 	}
-ENDM
-
-.blink_impl EXPAND
-got_client_announce:
-	set0 blink.blink_disconnected
-	ifset blink.blink_identify
-	  ret
-	mov a, t16_262ms
-	sr a
-	and a, 0x3
-	set0 blink.0
-	set0 blink.1
-	or blink, a
-	ret
 ENDM
 
 //
@@ -735,7 +717,7 @@ check_size:
 #endif
 
 	if (frm_flags.JD_FRAME_FLAG_ACK_REQUESTED) {
-		set1 tx_pending.txp_ack
+		set1 blink.blink_txp_ack
 		.mova ack_crc_l, crc_l
 		.mova ack_crc_h, crc_h
 	}
@@ -770,10 +752,6 @@ handle_ctrl_service:
 			ifclear ZF
 				// we enable LED
 				set1 blink.blink_status_on
-			goto rx_process_end
-		}
-		if (a == JD_CONTROL_CMD_IDENTIFY) {
-			.mova blink, blink_identify_mask
 		}
 
 		goto rx_process_end
@@ -784,7 +762,7 @@ handle_ctrl_service:
 		mov a, pkt_service_command_l
 
 		if (a == JD_CONTROL_REG_RW_RESET_IN) {
-			set0 flags.f_reset_in // first disable reset-in
+			clear t_reset // first disable reset-in
 			mov a, pkt_payload[3]
 			ifneq a, 0
 				goto pkt_invalid // they ask us to wait too long
@@ -793,8 +771,9 @@ handle_ctrl_service:
 			sr a
 			ifset ZF
 				goto rx_process_end // keep disabled - timer was 0
-			set1 flags.f_reset_in // enable
 			add a, t16_262ms
+			ifset ZF
+			  inc a // t_reset==0 means disabled; avoid that
 			mov t_reset, a // set timer
 		}
 		goto rx_process_end
@@ -805,7 +784,7 @@ handle_ctrl_service:
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
 		if (a == JD_CONTROL_REG_RO_FIRMWARE_IDENTIFIER) {
-			set1 tx_pending.txp_fw_id
+			set1 blink.blink_txp_fw_id
 		}
 	}
 #endif
@@ -1012,9 +991,9 @@ crc16_loop:
 //
 
 
-txp_streaming_samples equ 3
-txp_streaming_interval equ 4
-txp_reading equ 5
+txp_streaming_samples equ txp_serv5_sensor
+txp_streaming_interval equ txp_serv6_sensor
+txp_reading equ txp_serv7_sensor
 
 .sensor_impl EXPAND
 	BYTE streaming_samples
@@ -1157,14 +1136,14 @@ ENDM
 // ev_send has to be first
 ev_send:
 	inc ev_cnt
-	set1 tx_pending.txp_event
+	set1 blink.blink_txp_event
 	set1 flags.f_ev1
 	set0 flags.f_ev2
 	.t16_set t16_1ms, t_ev, 20
 	goto loop
 
 ev_flush:
-	set1 tx_pending.txp_event
+	set1 blink.blink_txp_event
 	if (flags.f_ev2) {
 		set0 flags.f_ev1
 		set0 flags.f_ev2
@@ -1175,7 +1154,7 @@ ev_flush:
 	goto loop
 	
 ev_prep_tx:
-	set0 tx_pending.txp_event
+	set0 blink.blink_txp_event
 	.serv_ev_payload
 	mov a, ev_cnt
 	or a, 0x80

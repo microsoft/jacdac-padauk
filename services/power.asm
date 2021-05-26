@@ -23,9 +23,9 @@ TODO:
 
 */
 
-txp_pwr_shutdown equ 3
-txp_pwr_allowed equ 4
-txp_pwr_status equ 5
+txp_pwr_shutdown equ txp_serv0
+txp_pwr_allowed equ txp_serv1
+txp_pwr_status equ txp_serv2
 
 .serv_init EXPAND
 	PAC.PIN_SWITCH = 1
@@ -37,7 +37,7 @@ ENDM
 ENDM
 
 .serv_prep_tx MACRO
-	ifset tx_pending.txp_event
+	ifset blink.blink_txp_event
 		goto ev_prep_tx
 
 	if (tx_pending.txp_pwr_status) {

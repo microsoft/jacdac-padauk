@@ -26,12 +26,10 @@ loop:
 	.blink_process
 
 	// this sends first announce after 263ms, and each subsequent one every 526ms
-	.on_rising flags.f_announce_t16_bit, t16_262ms.0, <set1 tx_pending.txp_announce>
+	.on_rising flags.f_announce_t16_bit, t16_262ms.0, <set1 blink.blink_txp_announce>
 
 #ifdef CFG_RESET_IN
-	if (flags.f_reset_in) {
-		.t16_chk t16_262ms, t_reset, reset
-	}
+	.t16_chk_nz t16_262ms, t_reset, reset
 #endif
 
 	if (flags.f_set_tx) {
@@ -44,7 +42,9 @@ loop:
 		add t_tx, a
 	}
 
-	mov a, tx_pending
+	mov a, blink
+	and a, 0xf0
+	or a, tx_pending
 	if (!ZF) {
 		.t16_chk t16_4us, t_tx, <goto try_tx>
 	}
@@ -75,8 +75,8 @@ prep_tx:
 	clear pkt_payload[3]
 	clear frm_flags
 
-	if (tx_pending.txp_ack) {
-		set0 tx_pending.txp_ack
+	if (blink.blink_txp_ack) {
+		set0 blink.blink_txp_ack
 		.mova pkt_service_number, 0x3f
 		.setcmd ack_crc_h, ack_crc_l
 		ret
@@ -85,8 +85,8 @@ prep_tx:
 	.serv_prep_tx
 
 #ifdef CFG_FW_ID
-	if (tx_pending.txp_fw_id) {
-		set0 tx_pending.txp_fw_id
+	if (blink.blink_txp_fw_id) {
+		set0 blink.blink_txp_fw_id
 		.forc x, <0123>
 		mov a, (CFG_FW_ID >> (x * 8)) & 0xff
 		mov pkt_payload[x], a
@@ -98,8 +98,8 @@ prep_tx:
 	}
 #endif
 
-	if (tx_pending.txp_announce) {
-		set0 tx_pending.txp_announce
+	if (blink.blink_txp_announce) {
+		set0 blink.blink_txp_announce
 		// reset_cnt maxes out at 0xf	
 		mov a, t16_262ms
 		sr a
@@ -124,6 +124,15 @@ prep_tx:
 		clear pkt_service_number
 		clear pkt_service_command_l
 		clear pkt_service_command_h
+
+		// blink processing: every ~4s clear blink_status_on
+		// t16_262ms should have lowest bit set (txp_announce is set on rising edge of lowest bit)
+		// we thus only clear when the last four bits of t16_262ms is 0001, which should be every 16*262ms = ~4s
+		mov a, t16_262ms
+		and a, 0x0e
+		ifset ZF
+			set0 blink.blink_status_on
+
 		ret
 	}
 
@@ -157,4 +166,3 @@ check_ctrl:
 //
 
 	.t16_impl
-	.blink_impl
