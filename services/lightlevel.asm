@@ -16,7 +16,7 @@ ENDM
 	.sensor_process
 ENDM
 
-.serv_prep_tx MACRO
+.serv_prep_tx EXPAND
 	if (txp_variant) {
 		set0 txp_variant
 		.mova pkt_payload[0], 3 // Ambient

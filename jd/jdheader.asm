@@ -216,6 +216,11 @@ ENDM
 	mov tim, a
 ENDM
 
+.t16_set_a MACRO t16_v, tim
+	add a, t16_v
+	mov tim, a
+ENDM
+
 .t16_init EXPAND
 t16_init_:
 	stt16 t16_low
@@ -599,7 +604,7 @@ pwr_test_size equ 8
 	mov a, rx_prev_data
 	goto _bit3
 	// cases of memidx==1,...,8
-.for v, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
+.for v, <0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08>
 	mov a, v
 	goto _bit3
 .endm
@@ -1041,8 +1046,7 @@ ENDM
 			mov a, 127
 		streaming_int_set:
 			mov streaming_interval, a
-			add a, t16_1ms
-			mov t_streaming, a
+			.t16_set_a t16_1ms, t_streaming
 			// goto rx_process_end
 		}
 

@@ -28,6 +28,7 @@ pin_init:
 #endif
 
 	call t16_sync
+	// irqs still disabled here
 	.serv_init
 
 loop:
@@ -36,6 +37,9 @@ loop:
 	.callnoint t16_sync
 
 	.blink_process
+#ifdef SERV_BLINK
+	SERV_BLINK
+#endif
 
 	// this sends first announce after 263ms, and each subsequent one every 526ms
 	.on_rising f_announce_t16_bit, t16_262ms.0, <set1 txp_announce>

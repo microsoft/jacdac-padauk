@@ -32,7 +32,7 @@ ENDM
 	.sensor_process
 ENDM
 
-.serv_prep_tx MACRO
+.serv_prep_tx EXPAND
 	if (txp_avail_buttons) {
 		set0 txp_avail_buttons
 		.mova pkt_payload[0], <JD_JOYSTICK_BUTTONS_A>
