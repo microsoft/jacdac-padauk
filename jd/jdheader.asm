@@ -583,10 +583,12 @@ pwr_test_size equ 8
 		set0 PA.PIN_SWITCH
 	set0 rx_pwr_flip_sw
 	nop
+	nop
 	mov a, memidx$0
 	// ----------------------------------------------------
 	ifset PA.PIN_JACDAC
 		set1 rx_data.1
+	nop
 	sub a, pkt_addr + (pwr_test_size + 2)
 	ifclear OV
 	  mov a, -(pwr_test_size + 2)
@@ -595,7 +597,7 @@ pwr_test_size equ 8
 	// ----------------------------------------------------
 	ifset PA.PIN_JACDAC
 		set1 rx_data.2
-
+	nop
 	pcadd a
 	// a is always even - so this is unreachable
 	nop
@@ -620,9 +622,11 @@ _bit3:
 	sub a, rx_prev_data
 	ifclear ZF
 	   set1 rx_pwr_neq	// if no match, clear the match flag
+	nop
 	// ----------------------------------------------------
 	ifset PA.PIN_JACDAC
 		set1 rx_data.4
+	nop
 	nop
 	nop
 	nop
