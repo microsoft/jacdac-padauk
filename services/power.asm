@@ -76,6 +76,7 @@ ENDM
 	.t16_chk t16_262ms, t_re_enable, <goto try_re_enable>
 
 	.ev_process
+	goto loop
 
 send_shutdown:
 	.callnoint rng_next
@@ -88,7 +89,6 @@ send_shutdown:
 	} else if (a == JD_POWER_POWER_STATUS_POWERING) {
 		set1 txp_pwr_shutdown
 	}
-
 	goto loop
 
 try_re_enable:
@@ -125,9 +125,8 @@ ENDM
 	if (txp_pwr_shutdown) {
 		set0 txp_pwr_shutdown
 
-		// TODO
-		crc_l = 0xff
-		crc_h = 0xff
+		crc_l = 0x15
+		crc_h = 0x59
 
 		frm_sz = 4
 		frm_flags = (1 << JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS) | (1 << JD_FRAME_FLAG_COMMAND)
