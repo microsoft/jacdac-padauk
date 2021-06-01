@@ -47,7 +47,7 @@ ENDM
 			// already in steady state
 			if (!PA.PIN_LIMITER) {
 				// fault!
-				.mova pwr_status JD_POWER_POWER_STATUS_OVERLOAD
+				pwr_status = JD_POWER_POWER_STATUS_OVERLOAD
 				.t16_set t16_262ms, t_re_enable, 4 // can re-enable after ~1000ms
 				goto disable_limiter
 			}
@@ -64,6 +64,7 @@ ENDM
 		PA.PIN_LIMITER = 0
 		PAC.PIN_LIMITER = 1
 	}
+	mov a, pwr_status
 	if (a != prev_pwr_status) {
 		mov prev_pwr_status, a
 		if (a == JD_POWER_POWER_STATUS_POWERING) {
