@@ -201,11 +201,11 @@ ENDM
 ENDM
 
 .t16_chk_nz MACRO t16_v, tim, handler
-	mov a, t16_v
+	mov a, tim
 	if (!ZF) {
-		sub a, tim
+		sub a, t16_v
 		and a, 0x80
-		ifset ZF
+		ifclear ZF
 			handler
 	}
 ENDM
@@ -443,7 +443,6 @@ ENDM
 #ifdef CFG_RESET_IN
 	BYTE    t_reset
 #endif
-
 	goto	main
 
 //
