@@ -24,7 +24,7 @@ txp_pwr_status equ txp_serv2
 
 .serv_blink EXPAND
 	if (pwr_status == JD_POWER_POWER_STATUS_POWERING) {
-		mov a, t16_16ms
+		mov a, t16_1ms
 		and a, 0xf
 		ifset ZF
 			.led_on // 1/16 duty LED on
