@@ -34,7 +34,6 @@ ENDM
 .serv_init EXPAND
 	PAC.PIN_SWITCH = 1
 	PA.PIN_SWITCH = 1
-	PAPH.PIN_LIMITER =   1 // pullup on limiter
 	call rng_next
 	and a, 0xf // 0-240ms
 	mov t_next_shutdown, a
@@ -57,10 +56,12 @@ ENDM
 			PAC.PIN_LIMITER = 1
 			.delay 10*8 // wait 10us
 			// switch it to input (with pull high)
+			PAPH.PIN_LIMITER = 1 // pullup on limiter
 			PAC.PIN_LIMITER = 0
 		}
 	} else {
 	disable_limiter:
+		PAPH.PIN_LIMITER = 0
 		PA.PIN_LIMITER = 0
 		PAC.PIN_LIMITER = 1
 	}
