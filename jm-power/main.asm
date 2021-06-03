@@ -1,12 +1,14 @@
 .CHIP   PMS150C
-// Give package map to writer	pcount	VDD	PA0	PA3	PA4	PA5	PA6	PA7	GND	SHORTC_MSK1	SHORTC_MASK1	SHIFT
-//.writer package 		6, 	1, 	0,	4, 	27, 	25,	26, 	0,	28, 	0x0007, 	0x0007, 	0
+// Give package map to writer	pcount VDD PA0 PA3 PA4 PA5 PA6 PA7 GND SHORTC_MSK1 SHORTC_MASK1 SHIFT
+.writer package                 8,     1,  7,  5,  6,  4,  3,  2,  8,  0x000D,     0x000D,      4
 //{{PADAUK_CODE_OPTION
 	.Code_Option	Security	Disable
 	.Code_Option	Bootup_Time	Fast
 	.Code_Option	Drive		Normal
 	.Code_Option	LVR		3.0V
 //}}PADAUK_CODE_OPTION
+
+#define RELEASE 1
 
 // all pins on PA
 #define PIN_LED	5
