@@ -590,7 +590,7 @@ pwr_test_size equ 8
 		set1 rx_data.1
 	nop
 	sub a, pkt_addr + (pwr_test_size + 2)
-	ifclear OV
+	ifclear CF
 	  mov a, -(pwr_test_size + 2)
 	add a, (pwr_test_size + 3)
 	sl a
