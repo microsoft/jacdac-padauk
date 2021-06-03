@@ -51,11 +51,11 @@ loop:
 	if (f_set_tx) {
 		set0 f_set_tx
 		.callnoint rng_next
+		// the C impl. waits for 112-187us
+		// here, we wait for 112-236us
 		and a, 31
-		add a, 12
-		mov t_tx, a
-		mov a, t16_4us
-		add t_tx, a
+		add a, 28
+		.t16_set_a t16_4us, t_tx
 	}
 
 	mov a, blink
