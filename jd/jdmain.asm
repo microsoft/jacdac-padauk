@@ -181,5 +181,4 @@ check_ctrl:
 // Module impl. if needed
 //
 
-	.t16_impl
 	.rng_impl

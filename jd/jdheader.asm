@@ -467,15 +467,8 @@ ENDM
 	$ INTEN = TM2
 ENDM
 
-reset_tm2:
-	mov a, 0
-	mov TM2CT, a
-	INTRQ.TM2 = 0
-	$ TM2S 8BIT, /1, /1
-	set1 f_set_tx
-	ret
-
-	// TODO we have about 8 instructions free here
+	// this fits exactly in the ROM space provided
+	.t16_impl
 
 	.romadr	0x10            // interrupt vector
 interrupt:
@@ -511,6 +504,14 @@ interrupt:
 	clear rx_flags
 #endif
 	goto rx_wait_start
+
+reset_tm2:
+	mov a, 0
+	mov TM2CT, a
+	INTRQ.TM2 = 0
+	$ TM2S 8BIT, /1, /1
+	set1 f_set_tx
+	ret
 
 IDSIZE equ 8
 
