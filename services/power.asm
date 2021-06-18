@@ -10,6 +10,8 @@
 #define JD_POWER_CMD_SHUTDOWN 0x80
 #define JD_POWER_EV_POWER_STATUS_CHANGED JD_EV_CHANGE
 
+#define MAX_POWER 900
+
 	BYTE	t_next_shutdown
 	BYTE	t_re_enable
 	BYTE    pwr_status
@@ -20,6 +22,7 @@
 txp_pwr_shutdown equ txp_serv0
 txp_pwr_allowed equ txp_serv1
 txp_pwr_status equ txp_serv2
+txp_pwr_max equ txp_serv3
 
 #define SERV_BLINK .serv_blink
 
@@ -98,14 +101,19 @@ send_shutdown:
 	mov a, pwr_status
 	if (a == JD_POWER_POWER_STATUS_POWERING) {
 		set1 txp_pwr_shutdown
-	} else if (a == JD_POWER_POWER_STATUS_OVERLOAD) {
-		set1 txp_pwr_shutdown
-	} else if (a == JD_POWER_POWER_STATUS_OVERPROVISION) {
+		goto loop
+	}
+
+	if (a == JD_POWER_POWER_STATUS_OVERPROVISION) {
 		dzsn switch_cnt
 			goto loop
 		goto try_re_enable
 	}
 
+	if (a == JD_POWER_POWER_STATUS_OVERLOAD) {
+		set1 txp_pwr_shutdown
+	}
+	
 	goto loop
 
 try_re_enable:
@@ -140,8 +148,18 @@ ENDM
 			mov a, 1
 		mov pkt_payload[0], a
 		pkt_service_command_l = JD_POWER_REG_RW_ALLOWED
+reg_rw:
 		dec pkt_service_command_h // JD_HIGH_REG_RW_GET
 		ret
+	}
+
+	if (txp_pwr_max) {
+		set0 txp_pwr_max
+		pkt_size = 2
+		pkt_payload[0] = MAX_POWER & 0xff
+		pkt_payload[1] = MAX_POWER >> 8
+		pkt_service_command_l = JD_REG_RW_MAX_POWER
+		goto reg_rw
 	}
 
 	if (txp_pwr_shutdown) {
@@ -182,6 +200,10 @@ serv_rx:
 	}
 	if (a == JD_HIGH_REG_RW_GET) {
 		mov a, pkt_service_command_l
+		if (a == JD_REG_RW_MAX_POWER) {
+			set1 txp_pwr_max
+			goto rx_process_end
+		}
 		if (a == JD_POWER_REG_RW_ALLOWED) {
 			set1 txp_pwr_allowed
 		}
