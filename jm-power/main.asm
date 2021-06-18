@@ -13,7 +13,7 @@
 // all pins on PA
 #define PIN_LED	5
 #define PIN_JACDAC 6
-#define PIN_LOG 7
+//#define PIN_LOG 7
 
 #define LED_SINK 1
 

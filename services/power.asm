@@ -15,6 +15,7 @@
 	BYTE    pwr_status
 	BYTE    prev_pwr_status
 	BYTE    switch_cnt
+	BYTE	t_power_on_complete
 
 txp_pwr_shutdown equ txp_serv0
 txp_pwr_allowed equ txp_serv1
@@ -51,6 +52,11 @@ ENDM
 				goto disable_limiter
 			}
 		} else {
+			if (t_power_on_complete != 0) {
+				.t16_chk t16_1ms, t_power_on_complete, <goto limiter_enabled>
+				goto loop
+			}
+
 			// we're about to switch it on: yank it high
 			PA.PIN_LIMITER = 1
 			PAC.PIN_LIMITER = 1
@@ -58,6 +64,12 @@ ENDM
 			// switch it to input (with pull high)
 			PAPH.PIN_LIMITER = 1 // pullup on limiter
 			PAC.PIN_LIMITER = 0
+
+			// assume it takes ~10ms for the limiter to ramp up
+			.t16_set t16_1ms, t_power_on_complete, 10
+			ifset ZF
+				inc t_power_on_complete
+			goto loop
 		}
 	} else {
 	disable_limiter:
@@ -65,6 +77,8 @@ ENDM
 		PA.PIN_LIMITER = 0
 		PAC.PIN_LIMITER = 1
 	}
+limiter_enabled:
+	clear t_power_on_complete
 	mov a, pwr_status
 	if (a != prev_pwr_status) {
 		mov prev_pwr_status, a
