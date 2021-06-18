@@ -127,6 +127,7 @@ ENDM
 		set0 txp_pwr_status
 		inc pkt_size // ==1
 		.mova pkt_payload[0], pwr_status
+		pkt_service_command_l = JD_POWER_REG_RO_POWER_STATUS
 		ret
 	}
 
@@ -138,6 +139,8 @@ ENDM
 		ifclear ZF
 			mov a, 1
 		mov pkt_payload[0], a
+		pkt_service_command_l = JD_POWER_REG_RW_ALLOWED
+		dec pkt_service_command_h // JD_HIGH_REG_RW_GET
 		ret
 	}
 
