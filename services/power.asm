@@ -10,7 +10,7 @@
 #define JD_POWER_CMD_SHUTDOWN 0x80
 #define JD_POWER_EV_POWER_STATUS_CHANGED JD_EV_CHANGE
 
-// #define MAX_POWER 900 // needs ~19 ROM words; we're 11 words short
+#define MAX_POWER 900 // optional - needs ~19 ROM words
 
 	BYTE	t_next_shutdown
 	BYTE	t_re_enable
@@ -101,10 +101,8 @@ send_shutdown:
 	add a, 24
 	.t16_set_a t16_16ms, t_next_shutdown
 	mov a, pwr_status
-	if (a == JD_POWER_POWER_STATUS_POWERING) {
-		set1 txp_pwr_shutdown
-		goto loop
-	}
+	ifset ZF
+		goto loop // state==disallowed
 
 	if (a == JD_POWER_POWER_STATUS_OVERPROVISION) {
 		dzsn switch_cnt
@@ -112,10 +110,8 @@ send_shutdown:
 		goto try_re_enable
 	}
 
-	if (a == JD_POWER_POWER_STATUS_OVERLOAD) {
-		set1 txp_pwr_shutdown
-	}
-	
+	// state is powering or overload
+	set1 txp_pwr_shutdown
 	goto loop
 
 try_re_enable:
