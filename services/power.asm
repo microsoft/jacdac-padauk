@@ -10,7 +10,7 @@
 #define JD_POWER_CMD_SHUTDOWN 0x80
 #define JD_POWER_EV_POWER_STATUS_CHANGED JD_EV_CHANGE
 
-#define MAX_POWER 900
+// #define MAX_POWER 900 // needs ~19 ROM words; we're 11 words short
 
 	BYTE	t_next_shutdown
 	BYTE	t_re_enable
@@ -22,7 +22,9 @@
 txp_pwr_shutdown equ txp_serv0
 txp_pwr_allowed equ txp_serv1
 txp_pwr_status equ txp_serv2
+#ifdef MAX_POWER
 txp_pwr_max equ txp_serv3
+#endif
 
 #define SERV_BLINK .serv_blink
 
@@ -153,6 +155,7 @@ reg_rw:
 		ret
 	}
 
+#ifdef MAX_POWER
 	if (txp_pwr_max) {
 		set0 txp_pwr_max
 		pkt_size = 2
@@ -161,6 +164,7 @@ reg_rw:
 		pkt_service_command_l = JD_REG_RW_MAX_POWER
 		goto reg_rw
 	}
+#endif
 
 	if (txp_pwr_shutdown) {
 		set0 txp_pwr_shutdown
@@ -168,7 +172,7 @@ reg_rw:
 		crc_l = 0x15
 		crc_h = 0x59
 
-		frm_sz = 4
+		// frm_sz = 4 - done elsewhere
 		frm_flags = (1 << JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS) | (1 << JD_FRAME_FLAG_COMMAND)
 
 		.forc x, <0123>
@@ -200,10 +204,12 @@ serv_rx:
 	}
 	if (a == JD_HIGH_REG_RW_GET) {
 		mov a, pkt_service_command_l
+#ifdef MAX_POWER
 		if (a == JD_REG_RW_MAX_POWER) {
 			set1 txp_pwr_max
 			goto rx_process_end
 		}
+#endif
 		if (a == JD_POWER_REG_RW_ALLOWED) {
 			set1 txp_pwr_allowed
 		}

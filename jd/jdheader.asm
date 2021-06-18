@@ -866,15 +866,16 @@ try_tx:
 
 	call prep_tx // ~20-~50 cycles
 
+	mov a, pkt_size
+	add a, 3+4 // add pkt-header size + round up to word
+	and a, 0b1111_1100
+	mov frm_sz, a // frm_sz == 4 || 8 || 12
+
 #ifdef PWR_SERVICE
 	ifset frm_flags.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
 	    goto _skip_crc
 #endif
 
-	mov a, pkt_size
-	add a, 3+4 // add pkt-header size + round up to word
-	and a, 0b1111_1100
-	mov frm_sz, a // frm_sz == 4 || 8 || 12
 	// initialize crc_l/h from the burned-in values, depending on packet size
 	sr a
 	add a, 7
