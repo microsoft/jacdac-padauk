@@ -42,7 +42,7 @@ PA5 - sink of status LED      | PA3 - Y wiper
 
 .joystick_button_probe EXPAND
 	mov a, 0x00
-	ifset PA.PIN_BTN_A
+	ifclear PA.PIN_BTN_A
 		or a, JD_JOYSTICK_BUTTONS_A
 	mov sensor_state[0], a
 ENDM
@@ -52,12 +52,16 @@ ENDM
 #define PIN_JOY_X_ADC PA4
 #define JOY_Y_OFF_POS 5
 #define PIN_JOY_Y_ADC PA3
-.include ../services/joystick.asm
 
+#define JOYSTICK_X_POLARITY_NEGATIVE
+#define JOYSTICK_Y_POLARITY_POSITIVE
+
+.include ../services/joystick.asm
 
 main:
 	.ADJUST_IC	SYSCLK=IHRC/2, IHRC=16MHz, VDD=3.3V
 	PADIER = (1 << PIN_JACDAC) | (1 << PIN_BTN_A)
+	PAPH = (1 << PIN_BTN_A)
 	PBDIER = 0
 
 .include ../jd/jdmain.asm
