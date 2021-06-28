@@ -71,9 +71,16 @@ do_joy_sample:
 	ifset CF
 		mov a, 0
 #endif
+#if defined(JOYSTICK_X_POLARITY_POSITIVE)
 	sub a, 128
 	mov adc_tmp, a
-
+#elif defined(JOYSTICK_X_POLARITY_NEGATIVE)
+	sub a, 127
+	neg a
+	mov adc_tmp, a
+#else
+	#error "joystick polarity not defined"
+#endif
 	$ ADCC Enable, PIN_JOY_Y_ADC
 	AD_START = 1
 	while (!AD_DONE) {}
@@ -88,8 +95,15 @@ do_joy_sample:
 	ifset CF
 		mov a, 0
 #endif
+
+#if defined(JOYSTICK_Y_POLARITY_POSITIVE)
+	sub a, 128
+#elif defined(JOYSTICK_Y_POLARITY_NEGATIVE)
 	sub a, 127
 	neg a
+#else
+	#error "joystick polarity not defined"
+#endif
 
 	.disint
 		mov sensor_state[3+4], a
