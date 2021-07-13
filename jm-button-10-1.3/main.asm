@@ -13,6 +13,7 @@
 // all pins on PA
 #define PIN_LED	5
 #define PIN_JACDAC 6
+#define LED_SINK 1
 //#define PIN_LOG 7
 
 // Cost given in comment: words of flash/bytes of RAM
