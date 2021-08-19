@@ -48,9 +48,9 @@ PA5 - sink of status LED      | PA3 - Y wiper
 ENDM
 
 #define PIN_JOY_SINK 7
-#define JOY_X_OFF_POS 9
+#define JOY_X_OFF_NEG 2
 #define PIN_JOY_X_ADC PA4
-#define JOY_Y_OFF_POS 5
+#define JOY_Y_OFF_NEG 5
 #define PIN_JOY_Y_ADC PA3
 
 #define JOYSTICK_X_POLARITY_NEGATIVE
