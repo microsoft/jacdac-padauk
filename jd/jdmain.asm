@@ -125,6 +125,7 @@ prep_tx:
 			set1 f_announce_rst_cnt_max
 		ifset f_announce_rst_cnt_max
 			mov a, 0xf
+		or a, JD_AD1_STATUS_LIGHT_MONO
 		mov pkt_payload[0], a
 #ifdef CFG_BROADCAST
 		.mova pkt_payload[1], JD_AD0_ACK_SUPPORTED|JD_AD0_IDENTIFIER_IS_SERVICE_CLASS_SUPPORTED
