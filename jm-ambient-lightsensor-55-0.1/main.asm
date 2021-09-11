@@ -13,7 +13,7 @@
 	.Code_Option	PB4_PB5_Drive	Strong
 //}}PADAUK_CODE_OPTION
 
-//#define RELEASE 1
+#define RELEASE 1
 
 /*
 Assignment (S8 package, or lower pins of S14/S16):
