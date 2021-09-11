@@ -14,6 +14,7 @@
 #define PIN_LED	5
 #define PIN_JACDAC 6
 //#define PIN_LOG 7
+#define LED_SINK 1
 
 // Cost given in comment: words of flash/bytes of RAM
 // #define CFG_T16_32BIT 1 // 1/1
