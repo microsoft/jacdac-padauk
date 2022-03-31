@@ -37,14 +37,14 @@ This limits the chips to:
 The main loop of the program:
 * captures current time (based on T16 timer, which is set to increment every 4us)
 * sets "pending announce" bit every ~500ms (really 512*1024us)
-* triggers transmission, when transmission timer expires (if the there are pending TX bits)
+* triggers transmission, when transmission timer expires (if there are pending TX bits)
 * does any service-specific processing (like probing the button)
 
 For reception,
 there is TM2 (8-bit timer) interrupt triggering every 8us (64T (instructions)) which checks if the Jacdac line was pulled low.
 (A pin interrupt could be possibly used instead, but the pin with interrupt is typically missing
 on smallest packages.)
-TM2 is the only sources of interrupts ever enabled.
+TM2 is the only source of interrupts ever enabled.
 
 Once the packet is received, it is processed by service-specific code (while still in interrupt context).
 There is typically a single pending TX bit allocated to each possible response to be sent from PADAUK,
@@ -82,7 +82,7 @@ Once the interrupt is triggered the reception process proceeds as follows:
 * get 8 bits of data
 * go to (*)
 
-The reception buffer can often overflow - the additional data is discarded in that case.
+The reception buffer will often overflow - the additional data is discarded in that case.
 
 When the interrupt is triggered when the RX flag is already set (timeout condition), the incoming packet is processed:
 * first, we check if the packet is an announce from a client, and if so we blink the status LED for 50us
@@ -92,7 +92,7 @@ When the interrupt is triggered when the RX flag is already set (timeout conditi
 * check if the packet didn't overflow the reception buffer
 * check CRC
 * check if this is a command
-* check if this for current version of Jacdac (VNEXT flag not set)
+* check if this is for current version of Jacdac (VNEXT flag not set)
 * if some of these conditions are not met, skip the packet
 * if ACK was requested, record that we need to send ACK
 * process packet according to control or custom service logic, setting various pending TX flags

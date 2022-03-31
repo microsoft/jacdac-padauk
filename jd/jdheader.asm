@@ -144,7 +144,7 @@ The if* macros below are used to resemble 'if' statements:
   ifset some.bit
       do_something
 
-the do_something is exactly one instruction.
+the do_something must be exactly one instruction.
 
 You can also write:
 
@@ -405,15 +405,15 @@ ENDM
 	.ramadr 0x00
 	WORD    memidx
 	BYTE    flags
-	BYTE    tx_pending
+	BYTE    tx_pending	// user-level TX-pending flags; txp_*
 	BYTE	isr0, isr1
 	BYTE    rx_data
 
-	BYTE    blink
+	BYTE    blink		// half of this byte is used for LED mgmt; the other half is for internal TX-pending flags
 
-	WORD    t16_low
-	BYTE	t16_16ms
-	BYTE    t16_262ms
+	WORD    t16_low		// this is in 4us units
+	BYTE	t16_16ms	// this is maintained to have triggers in 200-3000ms range
+	BYTE    t16_262ms	// this increments by 1 when t16_low overflows; thus we have 24 bit timer overflowing every ~minute
 
 	.ramadr pkt_addr
 	BYTE	crc_l, crc_h
