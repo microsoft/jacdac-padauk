@@ -18,9 +18,8 @@ If you create a new device folder, run `./check.sh` script to check for duplicat
 ## Requirements
 
 To run (software) UART at 1mbaud (as required by Jacdac), the MCU has to run at 8MHz (or more, but PADAUK chips only do up to 8MHz).
-Most PADAUK chips require LVD setting of 3.5V to operate at 8MHz, which implies supply of 3.7V, which is difficult to get reliably
-from Jacdac bus (unless an LDO is skipped but that may cause problems with precision of internal RC oscillator).
-Additionally, all Jacdac signalling uses 3.3V.
+Most PADAUK chips require LVD setting of 3.5V to operate at 8MHz, which implies supply of ~3.7V, which is not possible to get reliably
+from the Jacdac bus. Additionally, all Jacdac signalling uses 3.3V.
 
 We thus recommend chips that can run at 8MHz and 3.3V with low voltage detector set to 3.0V.
 Additionally, we require the 16-bit timer, an 8-bit timer, 64 bytes of memory, and 1kW of program memory.
