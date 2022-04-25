@@ -1,3 +1,20 @@
+#ifndef CFG_T16_32BIT
+#define CFG_T16_32BIT 0 // 1/1
+#endif
+
+#ifndef CFG_BROADCAST
+#define CFG_BROADCAST 1 // 20/0
+#endif
+
+#ifndef CFG_RESET_IN
+#define CFG_RESET_IN 1 // 24/1
+#endif
+
+#ifndef CFG_NOT_IMPL
+#define CFG_NOT_IMPL 1 // xx/2
+#endif
+
+
 #define JD_FRAME_FLAG_COMMAND 0
 #define JD_FRAME_FLAG_ACK_REQUESTED 1
 #define JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS 2
@@ -63,7 +80,7 @@ buffer_size equ (frame_header_size + 4 + payload_size)
 #define txp_serv1 tx_pending.1
 #define txp_serv2 tx_pending.2
 #define txp_serv3 tx_pending.3
-#define txp_serv4 tx_pending.4
+#define txp_not_implemented tx_pending.4
 #define txp_serv5_sensor tx_pending.5
 #define txp_serv6_sensor tx_pending.6
 #define txp_serv7_sensor tx_pending.7
@@ -238,7 +255,7 @@ t16_sync:
 	if (INTRQ.T16) {
 		INTRQ.T16 = 0
 		inc t16_262ms
-#ifdef CFG_T16_32BIT
+#if CFG_T16_32BIT
 		addc t16_67s
 #endif
 	}
@@ -437,13 +454,18 @@ ENDM
 	WORD	main_st[3]
 
 	BYTE    ack_crc_l, ack_crc_h
+
+#if CFG_NOT_IMPL
+	BYTE    not_impl_l, not_impl_h
+#endif
+
 	BYTE    t_tx
 
-#ifdef CFG_T16_32BIT
+#if CFG_T16_32BIT
 	BYTE    t16_67s
 #endif
 
-#ifdef CFG_RESET_IN
+#if CFG_RESET_IN
 	BYTE    t_reset
 #endif
 	goto	main
@@ -691,7 +713,7 @@ timeout:
 leave_irq:
 	.blink_rx
 
-#ifdef CFG_BROADCAST
+#if CFG_BROADCAST
 	ifset frm_flags.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
 		goto check_service_class
 #endif
@@ -727,7 +749,7 @@ check_size:
 	ifset frm_flags.JD_FRAME_FLAG_VNEXT
 	  goto pkt_error
 
-#ifdef CFG_BROADCAST
+#if CFG_BROADCAST
 	mov a, pkt_device_id[3]
 	ifclear ZF
 	    mov a, 1
@@ -771,9 +793,10 @@ handle_ctrl_service:
 			ifclear ZF
 				// we enable LED
 				set1 blink_status_on
+			goto rx_process_end
 		}
 
-		goto rx_process_end
+		goto not_implemented
 	}
 
 #ifdef CFG_RESET_IN
@@ -794,8 +817,9 @@ handle_ctrl_service:
 			ifset ZF
 			  mov a, 1 // t_reset==0 means disabled; avoid that
 			mov t_reset, a // set timer
+			goto rx_process_end
 		}
-		goto rx_process_end
+		goto not_implemented
 	}
 #endif
 
@@ -804,20 +828,24 @@ handle_ctrl_service:
 		mov a, pkt_service_command_l
 		if (a == JD_CONTROL_REG_RO_FIRMWARE_IDENTIFIER) {
 			set1 txp_fw_id
+			goto rx_process_end
 		}
+		goto not_implemented
 	}
 #endif
 
-	goto rx_process_end
+	goto not_implemented
 
 not_ctrl:
 	ifneq a, 1
 		goto not_serv1
 	goto serv_rx
 
+not_implemented:
+	// TODO set flag
+
 not_serv1:
 rx_process_end:
-
 not_interested:
 _do_leave:
 	// sync the timer, in case we interrupted the main loop just before it checks for f_set_tx
@@ -1057,10 +1085,10 @@ ENDM
 		streaming_int_set:
 			mov streaming_interval, a
 			.t16_set_a t16_1ms, t_streaming
-			// goto rx_process_end
+			goto rx_process_end
 		}
 
-		goto rx_process_end
+		goto not_implemented
 	}
 
 	if (a == JD_HIGH_REG_RW_GET) {
@@ -1068,13 +1096,15 @@ ENDM
 
 		if (a == JD_REG_RW_STREAMING_SAMPLES) {
 			set1 txp_streaming_samples
+			goto rx_process_end
 		}
 
 		if (a == JD_REG_RW_STREAMING_INTERVAL) {
 			set1 txp_streaming_interval
+			goto rx_process_end
 		}
 
-		goto rx_process_end
+		goto not_implemented
 	}
 
 
@@ -1083,13 +1113,13 @@ ENDM
 
 		if (a == JD_REG_RO_READING) {
 			set1 txp_reading
-			// goto rx_process_end
+			goto rx_process_end
 		}
 		
-		// goto rx_process_end
+		goto not_implemented
 	}
 
-	goto rx_process_end
+	goto not_implemented
 ENDM
 
 .sensor_process EXPAND

@@ -44,7 +44,7 @@ loop:
 	// this sends first announce after 263ms, and each subsequent one every 526ms
 	.on_rising f_announce_t16_bit, t16_262ms.0, <set1 txp_announce>
 
-#ifdef CFG_RESET_IN
+#if CFG_RESET_IN
 	.t16_chk_nz t16_262ms, t_reset, reset
 #endif
 
@@ -127,7 +127,7 @@ prep_tx:
 			mov a, 0xf
 		or a, JD_AD1_STATUS_LIGHT_MONO
 		mov pkt_payload[0], a
-#ifdef CFG_BROADCAST
+#if CFG_BROADCAST
 		.mova pkt_payload[1], JD_AD0_ACK_SUPPORTED|JD_AD0_IDENTIFIER_IS_SERVICE_CLASS_SUPPORTED
 #else
 		.mova pkt_payload[1], JD_AD0_ACK_SUPPORTED
@@ -155,7 +155,7 @@ prep_tx:
 
 	ret
 
-#ifdef CFG_BROADCAST
+#if CFG_BROADCAST
 check_service_class:
 	mov a, pkt_device_id[3]
 	ifset ZF
