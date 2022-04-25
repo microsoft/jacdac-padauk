@@ -14,9 +14,6 @@
 #define PIN_LOG 7
 
 // Cost given in comment: words of flash/bytes of RAM
-// #define CFG_T16_32BIT 1 // 1/1
-#define CFG_BROADCAST 1 // 20/0
-#define CFG_RESET_IN 1 // 24/1
 #define CFG_FW_ID 0x35b66a3f // 24/0
 
 .include ../jd/jdheader.asm
