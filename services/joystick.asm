@@ -174,6 +174,7 @@ serv_rx:
 		mov a, pkt_service_command_l
 		if (a == JD_JOYSTICK_REG_RO_BUTTONS_AVAILABLE) {
 			set1 txp_avail_buttons
+			goto rx_process_end
 		}
 	}
 

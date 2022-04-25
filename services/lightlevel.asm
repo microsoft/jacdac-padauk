@@ -62,6 +62,7 @@ serv_rx:
 		mov a, pkt_service_command_l
 		if (a == JD_REG_RO_VARIANT) {
 			set1 txp_variant
+			goto rx_process_end
 		}
 	}
 	.sensor_rx

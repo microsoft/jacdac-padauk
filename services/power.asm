@@ -195,8 +195,9 @@ serv_rx:
 		mov a, pkt_service_command_l
 		if (a == JD_POWER_REG_RO_POWER_STATUS) {
 			set1 txp_pwr_status
+			goto rx_process_end	
 		}
-		goto rx_process_end	
+		goto not_implemented
 	}
 	if (a == JD_HIGH_REG_RW_GET) {
 		mov a, pkt_service_command_l
@@ -208,8 +209,9 @@ serv_rx:
 #endif
 		if (a == JD_POWER_REG_RW_ALLOWED) {
 			set1 txp_pwr_allowed
+			goto rx_process_end
 		}
-		goto rx_process_end	
+		goto not_implemented
 	}
 	if (a == JD_HIGH_REG_RW_SET) {
 		mov a, pkt_service_command_l
@@ -223,8 +225,9 @@ serv_rx:
 				ifset ZF
 					inc pwr_status
 			}
+			goto rx_process_end	
 		}
-		goto rx_process_end	
+		goto not_implemented
 	}
 	if (a == JD_HIGH_CMD) {
 		mov a, pkt_service_command_l
@@ -241,10 +244,11 @@ serv_rx:
 				switch_cnt = 20 // how many "shutdown" cycles before we try to take over powering
 			}
 			.t16_set t16_262ms, t_re_enable, 5 // can re-enable after ~1300ms
+			goto rx_process_end
 		}
-		goto rx_process_end
+		goto not_implemented
 	}
-	goto rx_process_end
+	goto not_implemented
 
 .serv_ev_payload EXPAND
 	inc pkt_size // == 1

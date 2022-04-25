@@ -55,6 +55,7 @@ serv_rx:
 		mov a, pkt_service_command_l
 		if (a == JD_REG_RO_READING_ERROR) {
 			set1 txp_reading_error
+			goto rx_process_end
 		}
 	}
 	.sensor_rx
