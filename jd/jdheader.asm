@@ -865,7 +865,9 @@ try_tx:
 	PA.PIN_JACDAC = 1
 
 	call reset_tm2
-	$ TM2S 8BIT, /1, /6 // ~50us
+	// ~53us high gap
+	// when reset_tm2 returns a few cycles have already passed, so we need to divide by 7 not 6
+	$ TM2S 8BIT, /1, /7
 
 	call prep_tx // ~20-~50 cycles
 
