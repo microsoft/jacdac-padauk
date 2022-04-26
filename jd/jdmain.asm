@@ -83,12 +83,8 @@ ENDM
 ENDM
 
 prep_tx:
-	.mova pkt_service_number, 1
-	.mova pkt_service_command_h, JD_HIGH_REG_RO_GET
+
 	clear pkt_size
-	clear pkt_payload[1]
-	clear pkt_payload[2]
-	clear pkt_payload[3]
 	clear frm_flags
 
 	if (txp_ack) {
@@ -97,6 +93,23 @@ prep_tx:
 		.setcmd ack_crc_h, ack_crc_l
 		ret
 	}
+
+#if CFG_NOT_IMPL
+	if (txp_not_implemented) {
+		set0 txp_not_implemented
+		.mova pkt_size, 4
+		.mova pkt_service_number, pkt_payload[4]
+		clear pkt_service_command_h
+		.mova pkt_service_command_l, JD_CMD_COMMAND_NOT_IMPLEMENTED
+		ret
+	}
+#endif
+
+	.mova pkt_service_number, 1
+	.mova pkt_service_command_h, JD_HIGH_REG_RO_GET
+	clear pkt_payload[1]
+	clear pkt_payload[2]
+	clear pkt_payload[3]
 
 	.serv_prep_tx
 

@@ -10,8 +10,10 @@
 #define CFG_RESET_IN 1 // 24/1
 #endif
 
+// When this is disabled, we could shave off a few more bytes by collapsing 'goto not_impl; goto rx_process_done'
+// into 'goto rx_process_done'
 #ifndef CFG_NOT_IMPL
-#define CFG_NOT_IMPL 1 // xx/2
+#define CFG_NOT_IMPL 1 // 23/0
 #endif
 
 
@@ -39,6 +41,8 @@
 #define JD_HIGH_REG_RW_SET 0x20
 #define JD_HIGH_REG_RW_GET 0x10
 #define JD_HIGH_REG_RO_GET 0x11
+
+#define JD_CMD_COMMAND_NOT_IMPLEMENTED 0x03
 
 // #define JD_CONTROL_CMD_IDENTIFY 0x81 - not supported anymore
 #define JD_CONTROL_CMD_RESET 0x82
@@ -455,10 +459,6 @@ ENDM
 
 	BYTE    ack_crc_l, ack_crc_h
 
-#if CFG_NOT_IMPL
-	BYTE    not_impl_l, not_impl_h
-#endif
-
 	BYTE    t_tx
 
 #if CFG_T16_32BIT
@@ -526,6 +526,10 @@ interrupt:
 	mov a, 0
 #ifdef PWR_SERVICE
 	clear rx_flags
+#endif
+#if CFG_NOT_IMPL
+	// the payload will be destroyed now
+	set0 txp_not_implemented
 #endif
 	goto rx_wait_start
 
@@ -842,7 +846,16 @@ not_ctrl:
 	goto serv_rx
 
 not_implemented:
-	// TODO set flag
+#if CFG_NOT_IMPL
+	// We pre-construct the payload, and store service_idx on a side.
+	// In case there is an incoming packet, we'll simply forget about it.
+	.mova pkt_payload[0], pkt_service_command_l
+	.mova pkt_payload[1], pkt_service_command_h
+	.mova pkt_payload[2], crc_l
+	.mova pkt_payload[3], crc_h
+	.mova pkt_payload[4], pkt_service_number
+	set1 txp_not_implemented
+#endif
 
 not_serv1:
 rx_process_end:
