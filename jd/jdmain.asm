@@ -61,6 +61,9 @@ loop:
 	mov a, blink
 	and a, 0xf0
 	or a, tx_pending
+#if CFG_TXP2
+	or a, tx_pending2
+#endif
 	if (!ZF) {
 		.t16_chk t16_4us, t_tx, <goto try_tx>
 	}

@@ -16,6 +16,17 @@
 #define CFG_NOT_IMPL 1 // 23/0
 #endif
 
+#ifndef CFG_TXP2
+#define CFG_TXP2 0 // 1/1
+#endif
+
+#ifndef PAYLOAD_SIZE
+#define PAYLOAD_SIZE 8
+#endif
+
+#ifndef STACK_SIZE
+#define STACK_SIZE 3
+#endif
 
 #define JD_FRAME_FLAG_COMMAND 0
 #define JD_FRAME_FLAG_ACK_REQUESTED 1
@@ -68,8 +79,7 @@
 
 frame_header_size equ 12
 crc_size equ 2
-payload_size equ 8
-buffer_size equ (frame_header_size + 4 + payload_size)
+buffer_size equ (frame_header_size + 4 + PAYLOAD_SIZE)
 
 #define f_in_rx flags.0
 #define f_set_tx flags.1
@@ -448,14 +458,19 @@ ENDM
 	BYTE	pkt_service_number
 	BYTE	pkt_service_command_l
 	BYTE	pkt_service_command_h
-	BYTE	pkt_payload[payload_size]
+	BYTE	pkt_payload[PAYLOAD_SIZE]
 	BYTE	isr2 // this is overwritten during rx if packet too long (but that's fine)
+#if CFG_TXP2
+	BYTE    tx_pending2
+#endif
 	BYTE    rng_x
 
 	// so far:
+	// STACK_SIZE defaults to 3
 	// application is not using stack when IRQ enabled
 	// rx ISR can do up to 3
-	WORD	main_st[3]
+	// LED service can do 1 call + 3 in the RX ISR
+	WORD	main_st[STACK_SIZE]
 
 	BYTE    ack_crc_l, ack_crc_h
 
