@@ -85,6 +85,11 @@ ENDM
 	.mova pkt_service_command_l, y
 ENDM
 
+.set_rw_reg MACRO y
+	dec pkt_service_command_h
+	.mova pkt_service_command_l, y
+ENDM
+
 prep_tx:
 
 	clear pkt_size

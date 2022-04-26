@@ -2,8 +2,14 @@
 //{{PADAUK_CODE_OPTION
 	.Code_Option	Security	Disable
 	.Code_Option	Bootup_Time	Fast
-	.Code_Option	Drive		Normal
 	.Code_Option	LVR		3.0V
+	.Code_Option	Comparator_Edge	All_Edge
+	.Code_Option	TMx_Bit		6BIT
+	.Code_Option	TMx_Source	16MHz
+	.Code_Option	GPC_PWM		Disable
+	.Code_Option	Interrupt_Src1	PB.0
+	.Code_Option	Interrupt_Src0	PA.0
+	.Code_Option	PB4_PB7_Drive	Strong
 //}}PADAUK_CODE_OPTION
 
 //#define RELEASE 1
@@ -12,7 +18,7 @@
 #define LED_VARIANT 2 // ring
 
 #define CFG_TXP2 1
-#define STACK_SIZE 4
+// #define STACK_SIZE 4
 #define PIXEL_BUFFER_SIZE (3 * NUM_LEDS)
 #if PIXEL_BUFFER_SIZE > 8
 #define PAYLOAD_SIZE PIXEL_BUFFER_SIZE

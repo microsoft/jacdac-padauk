@@ -29,7 +29,8 @@ f_dirty equ f_serv0
 f_recompute equ f_serv1
 f_do_frame equ f_ev1
 
-#define pixels_ptr pixels
+pixels_ptr equ 0x42
+	.ramadr pixels_ptr
 
 	BYTE    pixels[PIXEL_BUFFER_SIZE]
 	BYTE    pixels_mul[PIXEL_BUFFER_SIZE]
@@ -40,7 +41,6 @@ f_do_frame equ f_ev1
 	BYTE    max_val_l
 	BYTE    max_val_h
 
-	WORD    ws_ptr
 	BYTE    ws_cnt
 	BYTE    val_l
 	BYTE    val_h
@@ -73,7 +73,7 @@ ENDM
 
 		_idx => 0
 		.repeat PIXEL_BUFFER_SIZE
-			.mova pkt_payload[i], pixels[i]
+			.mova pkt_payload[_idx], pixels[_idx]
 			_idx => _idx + 1
 		.endm
 		ret
@@ -199,7 +199,8 @@ recompute:
 	.mova val_21, 21
 	.mul_8x8 ws_tmp, val_upper_h, val_upper_l, val_h, val_21
 	// 
-	add max_val_h, val_upper_l
+	mov a, val_upper_l
+	add max_val_h, a
 	addc val_upper_h
 	if (!ZF) {
 		// if there's carry into val_upper_h, or val_upper_h was positive, the limit is above 3A
@@ -209,20 +210,29 @@ recompute:
 	.mova ws_cnt, PIXEL_BUFFER_SIZE
 	clear val_l
 	clear val_h
-	.mova ws_ptr, pixels_ptr
 
 mul_loop:
-	idxm a, ws_ptr
+	mov a, pixels_ptr-1
+	add a, ws_cnt
+	.disint
+		mov memidx$0, a
+		idxm a, memidx
+	engint
+
 	mov ws_x, a
 	.mul_8x8 ws_tmp, ws_y, ws_z, ws_x, actual_brightness
-	mov a, PIXEL_BUFFER_SIZE
-	add ws_ptr$0, a
-	mov a, ws_y
+
+	mov a, pixels_ptr-1+PIXEL_BUFFER_SIZE
+	add a, ws_cnt
+	.disint
+		mov memidx$0, a
+		mov a, ws_y
+		idxm memidx, a
+	engint
+
 	add val_l, a
 	addc val_h
-	idxm ws_ptr, a
-	mov a, PIXEL_BUFFER_SIZE-1
-	sub ws_ptr$0, a
+
 	dzsn ws_cnt
 		goto mul_loop
 	
@@ -307,7 +317,7 @@ serv_rx:
 			if (a == PIXEL_BUFFER_SIZE) {
 				_idx => 0
 				.repeat PIXEL_BUFFER_SIZE
-					.mova pixels[i], pkt_payload[i]
+					.mova pixels[_idx], pkt_payload[_idx]
 					_idx => _idx + 1
 				.endm
 				set1 f_recompute
