@@ -29,11 +29,10 @@ f_dirty equ f_serv0
 f_recompute equ f_serv1
 f_do_frame equ f_ev1
 
-pixels_ptr equ 0x42
+pixels_ptr equ 0x41
 	.ramadr pixels_ptr
 
-	BYTE    pixels[PIXEL_BUFFER_SIZE]
-	BYTE    pixels_mul[PIXEL_BUFFER_SIZE]
+	BYTE    pixels[PIXEL_BUFFER_SIZE*2]
 	BYTE    brightness
 	BYTE    actual_brightness
 	BYTE    max_power_l

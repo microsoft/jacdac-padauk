@@ -460,9 +460,6 @@ ENDM
 	BYTE	pkt_service_command_h
 	BYTE	pkt_payload[PAYLOAD_SIZE]
 	BYTE	isr2 // this is overwritten during rx if packet too long (but that's fine)
-#if CFG_TXP2
-	BYTE    tx_pending2
-#endif
 	BYTE    rng_x
 
 	// so far:
@@ -471,6 +468,10 @@ ENDM
 	// rx ISR can do up to 3
 	// LED service can do 1 call + 3 in the RX ISR
 	WORD	main_st[STACK_SIZE]
+
+#if CFG_TXP2
+	BYTE    tx_pending2
+#endif
 
 	BYTE    ack_crc_l, ack_crc_h
 
