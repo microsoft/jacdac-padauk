@@ -1,3 +1,13 @@
+#ifndef LED_VAL_PER_MA
+// (0,0,LED_VAL_PER_MA)/(255,255,255) = 1mA
+#define LED_VAL_PER_MA 21
+#endif
+
+#ifndef LED_BASE_PWR_MA
+// 1mA for Padauk, 1mA per LED
+#define LED_BASE_PWR_MA (1+NUM_LEDS)
+#endif
+
 #define JD_LED_VARIANT_STRIP 0x1
 #define JD_LED_VARIANT_RING 0x2
 #define JD_LED_VARIANT_STICK 0x3
@@ -29,28 +39,43 @@ f_dirty equ f_serv0
 f_recompute equ f_serv1
 f_do_frame equ f_ev1
 
+
+#if PIXEL_BUFFER_SIZE < 5
+#define PIXEL_MUL_BUFFER_SIZE 5
+#else
+#define PIXEL_MUL_BUFFER_SIZE PIXEL_BUFFER_SIZE
+#endif
+
 pixels_ptr equ 0x41
 	.ramadr pixels_ptr
 
-	BYTE    pixels[PIXEL_BUFFER_SIZE*2]
+	BYTE    pixels[PIXEL_BUFFER_SIZE]
+	BYTE    pixels_mul[PIXEL_MUL_BUFFER_SIZE]
 	BYTE    brightness
 	BYTE    actual_brightness
 	BYTE    max_power_l
 	BYTE    max_power_h
-	BYTE    max_val_l
-	BYTE    max_val_h
 
 	BYTE    ws_cnt
-	BYTE    val_l
-	BYTE    val_h
 	BYTE    ws_tmp
 	BYTE    ws_x
 	BYTE    ws_y
 	BYTE    ws_z
 
+#define val_tmp1 ws_cnt
+#define max_val_l ws_x
+#define max_val_h ws_y
+#define val_l ws_z
+#define val_h      pixels_mul[0]
+#define val_res1_l pixels_mul[1]
+#define val_res1_h pixels_mul[2]
+#define val_res2_l pixels_mul[3]
+#define val_res2_h pixels_mul[4]
+
+
 .serv_init EXPAND
 	PAC.PIN_WS2812 = 1 // output
-	.mova brightness, 10
+	.mova brightness, 100
 	mov actual_brightness, a
 	.mova max_power_l, 75
 	set1 f_recompute
@@ -132,7 +157,8 @@ ENDM
 .send_pixels EXPAND
 	.mova ws_count, PIXEL_BUFFER_SIZE
 	.mova memidx$0, pixels_ptr+PIXEL_BUFFER_SIZE
-	.mova ws_bit_count, 5
+	.mova ws_bit_count, 6
+	idxm a, memidx
 
 ws_next_bit:
 	set1 PA.PIN_WS2812
@@ -148,7 +174,7 @@ ws_next_bit:
 	mov ws_data, a
 	set1 PA.PIN_WS2812
 	mov a, 6
-	ifclear ws_data.1
+	ifclear ws_data.7
 	   set0 PA.PIN_WS2812
 	mov ws_bit_count, a
 	set0 PA.PIN_WS2812
@@ -159,7 +185,7 @@ ws_next_bit:
 
 	set1 PA.PIN_WS2812
 	nop
-	ifclear ws_data.0
+	ifclear ws_data.6
 	   set0 PA.PIN_WS2812
 	inc memidx$0
 	set0 PA.PIN_WS2812
@@ -170,19 +196,15 @@ ws_next_bit:
 		// goto, 2T
 ENDM
 
-#define val_21 ws_x
-#define val_upper_l ws_y
-#define val_upper_h ws_z
-
 recompute:
 	// clear the flag at the beginning - if we get some packets while recomputing, they will
 	// set the flag again, so we re-compute with proper data
 	set0 f_recompute
 
-	// val_lh = max_power_lh - (NUM_LEDS+1)
+	// val_lh = max_power_lh - LED_BASE_PWR_MA
 	.mova val_l, max_power_l
 	.mova val_h, max_power_h
-	mov a, NUM_LEDS+1	
+	mov a, LED_BASE_PWR_MA
 	sub val_l, a
 	subc val_h
 	// if (val_lh < 0) val_lh = 0
@@ -190,25 +212,94 @@ recompute:
 		clear val_l
 		clear val_h
 	}
-	// 21 = 1/0.046uA
-	// max_val_lh = val_l*21
-	.mova val_21, 21
-	.mul_8x8 ws_tmp, max_val_l, max_val_h, val_l, val_21
-	// val_upper_lh = val_h*21
-	.mova val_21, 21
-	.mul_8x8 ws_tmp, val_upper_l, val_upper_h, val_h, val_21
-	// 
-	mov a, val_upper_l
+	// max_val_lh = val_l*LED_VAL_PER_MA
+	.mova val_tmp1, LED_VAL_PER_MA
+	.mul_8x8 ws_tmp, max_val_l, max_val_h, val_l, val_tmp1
+	// val_res1_lh = val_h*LED_VAL_PER_MA
+	.mova val_tmp1, LED_VAL_PER_MA
+	.mul_8x8 ws_tmp, val_res1_l, val_res1_h, val_h, val_tmp1
+	// max_val_lh += val_res1_lh << 8
+	mov a, val_res1_l
 	add max_val_h, a
-	addc val_upper_h
+	addc val_res1_h
 	if (!ZF) {
-		// if there's carry into val_upper_h, or val_upper_h was positive, the limit is above 3A
+		// if there's carry into val_res1_h, or val_res1_h was positive, the limit is above 3A
 		.mova max_val_h, 0xff
 	}
 
 	.mova ws_cnt, PIXEL_BUFFER_SIZE
 	clear val_l
 	clear val_h
+
+add_val_loop:
+	mov a, pixels_ptr-1
+	add a, ws_cnt
+	.disint
+		mov memidx$0, a
+		idxm a, memidx
+	engint
+
+	add val_l, a
+	addc val_h
+
+	dzsn ws_cnt
+		goto add_val_loop
+
+	// val_res2_lh = (val_lh * actual_brightness) >> 8
+	.mova val_tmp1, val_l
+	.mul_8x8 ws_tmp, val_res1_l, val_res1_h, val_tmp1, actual_brightness
+	.mova val_tmp1, val_h
+	.mul_8x8 ws_tmp, val_res2_l, val_res2_h, val_tmp1, actual_brightness
+	mov a, val_res1_h
+	add val_res2_l, a
+	addc val_res2_h
+
+	// val_tmp1:val_res1_h = (val_lh * (actual_brightness+1)) >> 8
+	.mova val_res1_h, val_res2_l
+	.mova val_tmp1, val_res2_h
+	mov a, val_l
+	add val_res1_l, a
+	mov a, val_h
+	addc val_res1_h, a
+	addc val_tmp1
+
+	mov a, max_val_l
+	sub val_res2_l, a
+	mov a, max_val_h
+	subc val_res2_h, a
+
+	if (CF) {
+		// good, we're under current limit!
+		// is the actual brightness smaller than requested?
+		mov a, actual_brightness
+		if (a != brightness) {
+			mov a, max_val_l
+			sub val_res1_h, a
+			mov a, max_val_h
+			subc val_tmp1, a
+			// can we fit ++brightness?
+			ifset CF
+				inc actual_brightness
+		}
+	} else {
+		// we're over limit
+		mov a, actual_brightness
+		if (!ZF) {
+			// if actual is not zero (not sure if that's possible)
+			sr a
+			sr a
+			sr a
+			add a, 1
+			// reduce actual by 1/8th + 1
+			sub actual_brightness, a
+			// and try again next time
+			set1 f_recompute
+			goto loop
+		}
+	}
+
+	// now multiply pixels
+	.mova ws_cnt, PIXEL_BUFFER_SIZE
 
 mul_loop:
 	mov a, pixels_ptr-1
@@ -218,8 +309,12 @@ mul_loop:
 		idxm a, memidx
 	engint
 
+	// ws_y = ((pixels[ws_cnt] * actual_brightness) + 0x80) >> 8
 	mov ws_x, a
 	.mul_8x8 ws_tmp, ws_z, ws_y, ws_x, actual_brightness
+	mov a, 0x80
+	add ws_z, a
+	addc ws_y
 
 	mov a, pixels_ptr-1+PIXEL_BUFFER_SIZE
 	add a, ws_cnt
@@ -229,42 +324,15 @@ mul_loop:
 		idxm memidx, a
 	engint
 
-	add val_l, a
-	addc val_h
-
 	dzsn ws_cnt
 		goto mul_loop
 	
-	mov a, max_val_l
-	sub val_l, a
-	mov a, max_val_h
-	subc val_h, a
-	if (CF) {
-		// good!
-		mov a, actual_brightness
-		if (brightness != a) {
-			inc actual_brightness
-			set1 f_recompute
-		}
-	} else {
-		mov a, actual_brightness
-		if (!ZF) {
-			sr a
-			sr a
-			sr a
-			ifset ZF
-				mov a, 1
-			sub actual_brightness, a
-			set1 f_recompute
-		}
-	}
-
 	// RGB -> GRB
-	_idx => PIXEL_BUFFER_SIZE
+	_idx => 0
 	.repeat NUM_LEDS
-		mov a, pixels[_idx]
-		xch pixels[_idx + 1]
-		xch pixels[_idx]
+		mov a, pixels_mul[_idx]
+		xch pixels_mul[_idx + 1]
+		xch pixels_mul[_idx]
 		_idx => _idx + 3
 	.endm
 
