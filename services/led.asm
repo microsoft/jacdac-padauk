@@ -275,9 +275,6 @@ do_frame:
 	engint
 	goto loop
 
-handle_channel:
-	.mul_8x8 rx_data, isr1, isr2, isr0, pkt_payload[3]
-
 .reg_cmp MACRO val, flag
 		if (a == val) {
 			set1 flag

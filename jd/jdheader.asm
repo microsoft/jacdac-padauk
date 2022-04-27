@@ -192,7 +192,7 @@ but it's not optimal when do_something is a single instruction.
 
 // t0:t1 = x * y (unsigned); doesn't change y
 // ~12 instr.; ~90T
-.mul_8x8 EXPAND tmp, t0, t1, x, y 
+.mul_8x8 MACRO tmp, t0, t1, x, y 
 	clear t1
 	.mova tmp, 8
 @@:
