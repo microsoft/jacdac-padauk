@@ -97,7 +97,7 @@ ENDM
 
 	if (txp_actual_brightness) {
 		set0 txp_actual_brightness
-		.set_rw_reg JD_LED_REG_RO_ACTUAL_BRIGHTNESS
+		.set_ro_reg JD_LED_REG_RO_ACTUAL_BRIGHTNESS
 		.mova pkt_payload[0], actual_brightness
 		.mova pkt_size, 1
 		ret
@@ -193,10 +193,10 @@ recompute:
 	// 21 = 1/0.046uA
 	// max_val_lh = val_l*21
 	.mova val_21, 21
-	.mul_8x8 ws_tmp, max_val_h, max_val_l, val_l, val_21
+	.mul_8x8 ws_tmp, max_val_l, max_val_h, val_l, val_21
 	// val_upper_lh = val_h*21
 	.mova val_21, 21
-	.mul_8x8 ws_tmp, val_upper_h, val_upper_l, val_h, val_21
+	.mul_8x8 ws_tmp, val_upper_l, val_upper_h, val_h, val_21
 	// 
 	mov a, val_upper_l
 	add max_val_h, a
@@ -219,7 +219,7 @@ mul_loop:
 	engint
 
 	mov ws_x, a
-	.mul_8x8 ws_tmp, ws_y, ws_z, ws_x, actual_brightness
+	.mul_8x8 ws_tmp, ws_z, ws_y, ws_x, actual_brightness
 
 	mov a, pixels_ptr-1+PIXEL_BUFFER_SIZE
 	add a, ws_cnt
@@ -258,7 +258,16 @@ mul_loop:
 			set1 f_recompute
 		}
 	}
-	
+
+	// RGB -> GRB
+	_idx => PIXEL_BUFFER_SIZE
+	.repeat NUM_LEDS
+		mov a, pixels[_idx]
+		xch pixels[_idx + 1]
+		xch pixels[_idx]
+		_idx => _idx + 3
+	.endm
+
 	// we set dirty, so it's re-painted on next frame
 	// however, if there was an incoming packet during recomputation,
 	// or we max_power was exceeded, the f_recompute would have been set

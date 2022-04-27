@@ -190,7 +190,8 @@ but it's not optimal when do_something is a single instruction.
 #define ifclear t1sn
 #define ifneq ceqsn
 
-// t0:t1 = x * y (unsigned); doesn't change y
+// t1:t0 = x * y (unsigned); doesn't change y
+// t0 - low bits
 // ~12 instr.; ~90T
 .mul_8x8 MACRO tmp, t0, t1, x, y 
 	clear t1
@@ -938,6 +939,19 @@ try_tx:
 	    goto _skip_crc
 #endif
 
+#if PIXEL_BUFFER_SIZE > 8
+	mov a, 12
+	if (frm_sz > a) {
+		mov a, 0xff
+		mov crc_l, a
+		mov crc_h, a
+		.mova memidx$0, pkt_addr+2
+		mov a, 10
+		add a, frm_sz
+		goto _calc_crc
+	}
+	mov a, frm_sz
+#endif
 	// initialize crc_l/h from the burned-in values, depending on packet size
 	sr a
 	add a, 7
@@ -951,6 +965,7 @@ try_tx:
 
 	.mova memidx$0, pkt_addr+frame_header_size
 	mov a, frm_sz // len
+_calc_crc:
 	call crc16 // uses isr0, isr1
 
 _skip_crc:

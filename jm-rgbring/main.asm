@@ -20,6 +20,7 @@
 #define CFG_TXP2 1
 // #define STACK_SIZE 4
 #define PIXEL_BUFFER_SIZE (3 * NUM_LEDS)
+// payload_size has to be divisible by 4!
 #if PIXEL_BUFFER_SIZE > 8
 #define PAYLOAD_SIZE PIXEL_BUFFER_SIZE
 #endif
