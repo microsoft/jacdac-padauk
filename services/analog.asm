@@ -2,6 +2,15 @@
 #define SAMPLING_MS 20
 #endif
 
+#ifdef ADC_12BIT
+#define ADC_L ADCRL
+#define ADC_H ADCRH
+#else
+#define ADC_L 0
+#define ADC_H ADCR
+#define ADC_8BIT
+#endif
+
 #ifdef VARIANT
 txp_variant equ txp_serv0
 #endif
@@ -51,12 +60,16 @@ do_analog_sample:
 	.delay 1000
 #endif
 
+#ifdef ADC_12BIT
+	$ ADCM 12BIT, /16
+#else
 	$ ADCM 8BIT, /16
+#endif
 
 	$ ADCC Enable, PIN_ADC
 	AD_START = 1
 	while (!AD_DONE) {}
-	mov a, ADCR
+	mov a, ADC_H
 
 	.analog_reading
 

@@ -14,6 +14,7 @@ ENDM
 
 .analog_reading EXPAND
 	mov sensor_state[1], a
+	.mova sensor_state[0], ADC_L
 ENDM
 
 .include analog.asm
