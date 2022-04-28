@@ -6,7 +6,7 @@
 	BYTE	tmp, adc_rd, lx_mul
 
 .serv_init EXPAND
-	.mova streaming_interval, 20
+	.mova streaming_interval, 500
 ENDM
 
 .analog_reading_error EXPAND

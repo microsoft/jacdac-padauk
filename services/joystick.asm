@@ -23,7 +23,7 @@ txp_avail_buttons equ txp_serv0
 	.sensor_impl
 
 .serv_init EXPAND
-	.mova streaming_interval, 20
+	.mova streaming_interval, 50
 ENDM
 
 .serv_process EXPAND

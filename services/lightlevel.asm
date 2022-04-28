@@ -9,7 +9,7 @@
 #endif
 
 .serv_init EXPAND
-	.mova streaming_interval, 20
+	.mova streaming_interval, 100
 ENDM
 
 .analog_reading EXPAND

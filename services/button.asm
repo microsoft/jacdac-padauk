@@ -19,7 +19,7 @@ txp_analog_button equ txp_serv0
 
 .serv_init EXPAND
 	PAPH.PIN_BTN =   1 // pullup on btn
-	.mova streaming_interval, 20
+	.mova streaming_interval, 100
 ENDM
 
 .serv_process EXPAND
