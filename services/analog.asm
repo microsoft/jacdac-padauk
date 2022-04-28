@@ -25,10 +25,18 @@ txp_reading_error equ txp_serv1
 
 .serv_process EXPAND
 	.t16_chk t16_1ms, t_sample, <goto do_analog_sample>
+#ifdef EVENTS
+	.ev_process
+#endif
 	.sensor_process
 ENDM
 
 .serv_prep_tx EXPAND
+#ifdef EVENTS
+	ifset txp_event
+		goto ev_prep_tx
+#endif
+
 #ifdef VARIANT
 	if (txp_variant) {
 		set0 txp_variant
@@ -69,8 +77,8 @@ do_analog_sample:
 	$ ADCC Enable, PIN_ADC
 	AD_START = 1
 	while (!AD_DONE) {}
-	mov a, ADC_H
 
+	mov a, ADC_H
 	.analog_reading
 
 	$ ADCC Disable
@@ -79,7 +87,6 @@ do_analog_sample:
 	PAC.PIN_ANALOG_PWR = 0
 	PA.PIN_ANALOG_PWR = 0
 #endif
-
 
 	goto loop
 
@@ -102,3 +109,14 @@ serv_rx:
 	}
 	.sensor_rx
 
+#ifdef EVENTS
+	BYTE ev_code
+
+.serv_ev_payload EXPAND
+	.mova pkt_service_command_l, ev_code
+ENDM
+
+ev_send_ex:
+	mov ev_code, a
+	.ev_impl
+#endif
