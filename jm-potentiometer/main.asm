@@ -27,7 +27,7 @@ PB7 - pot                     | PB1
 
 // all pins on PA
 #define PIN_LED	5
-#define LED_SINK 1
+// #define LED_SINK 1
 #define PIN_JACDAC 6
 // #define PIN_LOG 1
 
