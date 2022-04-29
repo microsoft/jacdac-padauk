@@ -791,20 +791,7 @@ check_size:
 
 #if CFG_BROADCAST
 #if CFG_DUAL_SERVICE
-#if (SERVICE_CLASS & 0xff) == (SERVICE_CLASS2 & 0xff)
-#error "service class clash"
-#endif
-	if (frm_flags.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS) {
-		clear pkt_service_number
-		mov a, pkt_device_id[3]
-		if (!ZF) {
-			inc pkt_service_number
-			mov a, (SERVICE_CLASS2 & 0xff)
-			sub a, pkt_device_id[0]
-			ifset ZF
-				inc pkt_service_number
-		}
-	}
+	call check_dual_broadcast
 #else
 	mov a, pkt_device_id[3]
 	ifclear ZF

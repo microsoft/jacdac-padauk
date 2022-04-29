@@ -30,6 +30,9 @@ pin_init:
 	call t16_sync
 	// irqs still disabled here
 	.serv_init
+#if CFG_DUAL_SERVICE
+	.serv_init2
+#endif
 
 loop:
 	.assert_not PAC.PIN_JACDAC // we should be in input mode here
@@ -69,6 +72,9 @@ loop:
 	}
 
 	.serv_process
+#if CFG_DUAL_SERVICE
+	.serv_process2
+#endif
 
 	goto loop
 
@@ -120,6 +126,9 @@ prep_tx:
 	clear pkt_payload[3]
 
 	.serv_prep_tx
+#if CFG_DUAL_SERVICE
+	.serv_prep_tx2
+#endif
 
 #ifdef CFG_FW_ID
 	if (txp_fw_id) {
@@ -216,6 +225,26 @@ check_ctrl:
 	ifclear ZF
 		goto not_interested
 	goto check_size
+
+#if CFG_DUAL_SERVICE
+check_dual_broadcast:
+#if (SERVICE_CLASS & 0xff) == (SERVICE_CLASS2 & 0xff)
+#error "service class clash"
+#endif
+	if (frm_flags.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS) {
+		clear pkt_service_number
+		mov a, pkt_device_id[3]
+		if (!ZF) {
+			inc pkt_service_number
+			mov a, (SERVICE_CLASS2 & 0xff)
+			sub a, pkt_device_id[0]
+			ifset ZF
+				inc pkt_service_number
+		}
+	}
+	ret
+#endif
+
 #endif
 
 //

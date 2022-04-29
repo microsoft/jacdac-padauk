@@ -1,7 +1,6 @@
 #ifdef BTN_SECOND
 #define SERVICE_CLASS2 0x1473a263
 #define SENSOR_SIZE2 2
-#define SERV_NUM 2
 .sensor_set_service2 EXPAND
 	inc pkt_service_number
 ENDM
@@ -12,7 +11,6 @@ ENDM
 // single-service
 #define SERVICE_CLASS 0x1473a263
 #define SENSOR_SIZE 2
-#define SERV_NUM
 #endif
 
 #ifdef PIN_BTN
@@ -35,30 +33,30 @@ txp_reading2 equ tx_pending2.3
 txp_analog_button equ txp_serv0
 #endif
 
-
-	BYTE	t_sample
+	BYTE	t_btn_sample
 	BYTE    t_btn_hold
 	BYTE    btn_down_l
 	BYTE    btn_down_h
 	BYTE    ev_code
 
-	.sensor_impl SERV_NUM
+.btn_impl EXPAND N
+	.sensor_impl N
 
-.serv_init#SERV_NUM EXPAND
+.serv_init#N EXPAND
 	PIN_BTN_PH = 1 // pullup on btn
 	.mova streaming_interval, 100
 ENDM
 
-.serv_process#SERV_NUM EXPAND
+.serv_process#N EXPAND
 	.ev_process
-	.t16_chk t16_1ms, t_sample, <goto do_sample>
-	.sensor_process SERV_NUM
+	.t16_chk t16_1ms, t_btn_sample, <goto do_btn_sample>
+	.sensor_process N
 ENDM
 
-.serv_prep_tx#SERV_NUM EXPAND
+.serv_prep_tx#N EXPAND
 	if (txp_analog_button) {
 		set0 txp_analog_button
-		.sensor_set_service#SERV_NUM
+		.sensor_set_service#N
 		clear pkt_payload[0]
 		.mova pkt_size, 1
 		.mova pkt_service_command_l, JD_LED_REG_RO_ANALOG
@@ -68,19 +66,19 @@ ENDM
 	ifset txp_event
 		goto ev_prep_tx
 
-	.sensor_prep_tx SERV_NUM
+	.sensor_prep_tx N
 ENDM
 
-do_sample:
-	.t16_set t16_1ms, t_sample, 20
-	mov a, sensor_state#SERV_NUM[0]
+do_btn_sample:
+	.t16_set t16_1ms, t_btn_sample, 20
+	mov a, sensor_state#N[0]
 	ifclear PIN_BTN_RD
 		goto button_active
 button_inactive:
 	ifset ZF // state==0
 		goto loop // just keep going
-	clear sensor_state#SERV_NUM[0]
-	clear sensor_state#SERV_NUM[1]
+	clear sensor_state#N[0]
+	clear sensor_state#N[1]
 
 		// snapshot duration
 		mov a, t16_1ms
@@ -102,8 +100,8 @@ button_hold:
 	mov a, JD_BUTTON_EV_HOLD
 	goto ev_send_btn
 button_down:
-	.mova sensor_state#SERV_NUM[0], 0xff
-	.mova sensor_state#SERV_NUM[1], 0xff
+	.mova sensor_state#N[0], 0xff
+	.mova sensor_state#N[1], 0xff
 	.disint
 		.mova btn_down_l, t16_1ms
 		.mova btn_down_h, t16_262ms
@@ -112,17 +110,17 @@ button_down:
 	mov a, JD_BUTTON_EV_DOWN
 	goto ev_send_btn
 
-serv_rx#SERV_NUM:
+serv_rx#N:
 	mov a, pkt_service_command_h
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
 		.reg_cmp JD_LED_REG_RO_ANALOG, txp_analog_button
 	}
-	.sensor_rx SERV_NUM
+	.sensor_rx N
 
 .serv_ev_payload EXPAND
 	.mova pkt_size, 4
-	.sensor_set_service#SERV_NUM
+	.sensor_set_service#N
 	mov a, ev_code
 	mov pkt_service_command_l, a
 	if (a == JD_BUTTON_EV_DOWN) {
@@ -141,6 +139,14 @@ serv_rx#SERV_NUM:
 		mov pkt_payload[1], a
 	}
 ENDM
+
+ENDM
+
+#ifdef BTN_SECOND
+	.btn_impl 2
+#else
+	.btn_impl
+#endif
 
 ev_send_btn:
 	mov ev_code, a
