@@ -87,10 +87,7 @@ serv_rx:
 	mov a, pkt_service_command_h
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
-		if (a == JD_LED_REG_RO_ANALOG) {
-			set1 txp_analog_button
-			goto rx_process_end
-		}
+		.reg_cmp JD_LED_REG_RO_ANALOG, txp_analog_button
 	}
 	.sensor_rx
 

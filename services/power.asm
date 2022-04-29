@@ -193,24 +193,15 @@ serv_rx:
 	mov a, pkt_service_command_h
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
-		if (a == JD_POWER_REG_RO_POWER_STATUS) {
-			set1 txp_pwr_status
-			goto rx_process_end	
-		}
+		.reg_cmp JD_POWER_REG_RO_POWER_STATUS, txp_pwr_status
 		goto not_implemented
 	}
 	if (a == JD_HIGH_REG_RW_GET) {
 		mov a, pkt_service_command_l
 #ifdef MAX_POWER
-		if (a == JD_REG_RW_MAX_POWER) {
-			set1 txp_pwr_max
-			goto rx_process_end
-		}
+		.reg_cmp JD_REG_RW_MAX_POWER, txp_pwr_max
 #endif
-		if (a == JD_POWER_REG_RW_ALLOWED) {
-			set1 txp_pwr_allowed
-			goto rx_process_end
-		}
+		.reg_cmp JD_POWER_REG_RW_ALLOWED, txp_pwr_allowed
 		goto not_implemented
 	}
 	if (a == JD_HIGH_REG_RW_SET) {

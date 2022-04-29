@@ -211,20 +211,10 @@ serv_rx:
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
 
-		if (a == JD_LED_REG_RO_COLOR) {
-			set1 txp_color
-			goto rx_process_end
-		}
-
-		if (a == JD_REG_RO_VARIANT) {
-			set1 txp_variant
-			goto rx_process_end
-		}
-
-		if (a == JD_LED_REG_RO_LED_COUNT) {
-			set1 txp_led_count
-		}
+		.reg_cmp JD_LED_REG_RO_COLOR, txp_color
+		.reg_cmp JD_REG_RO_VARIANT, txp_variant
+		.reg_cmp JD_LED_REG_RO_LED_COUNT, txp_led_count
 	}
 
-	goto rx_process_end
+	goto not_implemented
 

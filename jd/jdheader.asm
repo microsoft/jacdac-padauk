@@ -858,10 +858,7 @@ handle_ctrl_service:
 #ifdef CFG_FW_ID
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
-		if (a == JD_CONTROL_REG_RO_FIRMWARE_IDENTIFIER) {
-			set1 txp_fw_id
-			goto rx_process_end
-		}
+		.reg_cmp JD_CONTROL_REG_RO_FIRMWARE_IDENTIFIER, txp_fw_id
 		goto not_implemented
 	}
 #endif
@@ -1149,15 +1146,8 @@ ENDM
 	if (a == JD_HIGH_REG_RW_GET) {
 		mov a, pkt_service_command_l
 
-		if (a == JD_REG_RW_STREAMING_SAMPLES) {
-			set1 txp_streaming_samples
-			goto rx_process_end
-		}
-
-		if (a == JD_REG_RW_STREAMING_INTERVAL) {
-			set1 txp_streaming_interval
-			goto rx_process_end
-		}
+		.reg_cmp JD_REG_RW_STREAMING_SAMPLES, txp_streaming_samples
+		.reg_cmp JD_REG_RW_STREAMING_INTERVAL, txp_streaming_interval
 
 		goto not_implemented
 	}
@@ -1166,10 +1156,7 @@ ENDM
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
 
-		if (a == JD_REG_RO_READING) {
-			set1 txp_reading
-			goto rx_process_end
-		}
+		.reg_cmp JD_REG_RO_READING, txp_reading
 		
 		goto not_implemented
 	}
@@ -1198,7 +1185,7 @@ ENDM
 .sensor_prep_tx EXPAND
 	if (txp_streaming_samples) {
 		set0 txp_streaming_samples
-		.setcmd JD_HIGH_REG_RW_GET, JD_REG_RW_STREAMING_SAMPLES
+		.set_rw_reg JD_REG_RW_STREAMING_SAMPLES
 		.mova pkt_payload[0], streaming_samples
 		.mova pkt_size, 1
 		ret
@@ -1206,7 +1193,7 @@ ENDM
 
 	if (txp_streaming_interval) {
 		set0 txp_streaming_interval
-		.setcmd JD_HIGH_REG_RW_GET, JD_REG_RW_STREAMING_INTERVAL
+		.set_rw_reg JD_REG_RW_STREAMING_INTERVAL
 		.mova pkt_payload[0], streaming_interval
 		.mova pkt_size, 4
 		ret

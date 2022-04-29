@@ -95,16 +95,10 @@ serv_rx:
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
 #ifdef VARIANT
-		if (a == JD_REG_RO_VARIANT) {
-			set1 txp_variant
-			goto rx_process_end
-		}
+		.reg_cmp JD_REG_RO_VARIANT, txp_variant
 #endif
 #ifdef READING_ERROR
-		if (a == JD_REG_RO_READING_ERROR) {
-			set1 txp_reading_error
-			goto rx_process_end
-		}
+		.reg_cmp JD_REG_RO_READING_ERROR, txp_reading_error
 #endif
 	}
 	.sensor_rx
