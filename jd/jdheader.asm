@@ -434,6 +434,13 @@ ENDM
 	}
 ENDM
 
+.reg_cmp MACRO val, flag
+		if (a == val) {
+			set1 flag
+			goto rx_process_end
+		}
+ENDM
+
 //
 // Module: RAM
 //

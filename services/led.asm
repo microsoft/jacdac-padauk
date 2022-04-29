@@ -352,13 +352,6 @@ do_frame:
 	engint
 	goto loop
 
-.reg_cmp MACRO val, flag
-		if (a == val) {
-			set1 flag
-			goto rx_process_end
-		}
-ENDM
-
 serv_rx:
 	mov a, pkt_service_command_h
 
