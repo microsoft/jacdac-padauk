@@ -36,10 +36,6 @@
 #define STACK_SIZE 3
 #endif
 
-#ifndef PIXEL_BUFFER_SIZE
-#define PIXEL_BUFFER_SIZE 0
-#endif
-
 #define JD_FRAME_FLAG_COMMAND 0
 #define JD_FRAME_FLAG_ACK_REQUESTED 1
 #define JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS 2
@@ -882,6 +878,13 @@ not_ctrl:
 		goto not_serv1
 	goto serv_rx
 
+#if CFG_DUAL_SERVICE
+not_serv1:
+	ifneq a, 2
+		goto rx_process_end
+	goto serv_rx2
+#endif
+
 not_implemented:
 #if CFG_NOT_IMPL
 	// We pre-construct the payload, and store service_idx on a side.
@@ -894,13 +897,9 @@ not_implemented:
 	set1 txp_not_implemented
 #endif
 
+#if !CFG_DUAL_SERVICE
 not_serv1:
-#if CFG_DUAL_SERVICE
-	ifneq a, 2
-		goto rx_process_end
-	goto serv_rx2
 #endif
-
 rx_process_end:
 not_interested:
 _do_leave:
@@ -965,7 +964,7 @@ try_tx:
 	    goto _skip_crc
 #endif
 
-#if PIXEL_BUFFER_SIZE > 8
+#if PAYLOAD_SIZE > 8
 	mov a, 12
 	if (frm_sz > a) {
 		mov a, 0xff
@@ -1116,6 +1115,10 @@ crc16_loop:
 
 .sensor_set_service EXPAND
 	// already set to 1
+ENDM
+.sensor_set_service2 EXPAND
+	// set to 2
+	inc pkt_service_number
 ENDM
 
 .sensor_impl EXPAND n

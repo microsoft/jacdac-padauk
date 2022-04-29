@@ -1,9 +1,6 @@
 #ifdef BTN_SECOND
 #define SERVICE_CLASS2 0x1473a263
 #define SENSOR_SIZE2 2
-.sensor_set_service2 EXPAND
-	inc pkt_service_number
-ENDM
 #if !CFG_DUAL_SERVICE
 #error "need dual service!"
 #endif
@@ -44,7 +41,7 @@ txp_analog_button equ txp_serv0
 
 .serv_init#N EXPAND
 	PIN_BTN_PH = 1 // pullup on btn
-	.mova streaming_interval, 100
+	.mova streaming_interval#N, 100
 ENDM
 
 .serv_process#N EXPAND
