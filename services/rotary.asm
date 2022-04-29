@@ -32,8 +32,12 @@ ENDM
 .serv_prep_tx EXPAND
 	if (txp_clicker) {
 		set0 txp_clicker
-		clear pkt_payload[0]
 		.mova pkt_size, 1
+#ifdef BTN_SECOND
+		mov pkt_payload[0], a
+#else
+		clear pkt_payload[0]
+#endif
 		.set_ro_reg JD_ROTARY_ENCODER_REG_RO_CLICKER
 		ret
 	}

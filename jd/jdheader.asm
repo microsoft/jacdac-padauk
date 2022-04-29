@@ -16,12 +16,20 @@
 #define CFG_NOT_IMPL 1 // 23/0
 #endif
 
+#ifndef CFG_DUAL_SERVICE
+#define CFG_DUAL_SERVICE 0
+#endif
+
 #ifndef CFG_TXP2
-#define CFG_TXP2 0 // 1/1
+#define CFG_TXP2 CFG_DUAL_SERVICE // 1/1
 #endif
 
 #ifndef PAYLOAD_SIZE
+#if CFG_DUAL_SERVICE
+#define PAYLOAD_SIZE 12
+#else
 #define PAYLOAD_SIZE 8
+#endif
 #endif
 
 #ifndef STACK_SIZE
@@ -782,11 +790,28 @@ check_size:
 	  goto pkt_error
 
 #if CFG_BROADCAST
+#if CFG_DUAL_SERVICE
+#if (SERVICE_CLASS & 0xff) == (SERVICE_CLASS2 & 0xff)
+#error "service class clash"
+#endif
+	if (frm_flags.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS) {
+		clear pkt_service_number
+		mov a, pkt_device_id[3]
+		if (!ZF) {
+			inc pkt_service_number
+			mov a, (SERVICE_CLASS2 & 0xff)
+			sub a, pkt_device_id[0]
+			ifset ZF
+				inc pkt_service_number
+		}
+	}
+#else
 	mov a, pkt_device_id[3]
 	ifclear ZF
 	    mov a, 1
 	ifset frm_flags.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
 		mov pkt_service_number, a
+#endif
 #endif
 
 	if (frm_flags.JD_FRAME_FLAG_ACK_REQUESTED) {
@@ -883,6 +908,12 @@ not_implemented:
 #endif
 
 not_serv1:
+#if CFG_DUAL_SERVICE
+	ifneq a, 2
+		goto rx_process_end
+	goto serv_rx2
+#endif
+
 rx_process_end:
 not_interested:
 _do_leave:
@@ -1092,51 +1123,54 @@ crc16_loop:
 // Module: sensor
 //
 
-
 #define txp_streaming_samples txp_serv5_sensor
 #define txp_streaming_interval txp_serv6_sensor
 #define txp_reading txp_serv7_sensor
 
-.sensor_impl EXPAND
-	BYTE streaming_samples
-	BYTE streaming_interval
-	BYTE t_streaming
-	BYTE sensor_state[SENSOR_SIZE]
+.sensor_set_service EXPAND
+	// already set to 1
 ENDM
 
-.sensor_rx EXPAND
+.sensor_impl EXPAND n
+	BYTE streaming_samples#n
+	BYTE streaming_interval#n
+	BYTE t_streaming#n
+	BYTE sensor_state#n[SENSOR_SIZE#n]
+ENDM
+
+.sensor_rx EXPAND n
 	mov a, pkt_service_command_h
 
 	if (a == JD_HIGH_REG_RW_SET) {
 		mov a, pkt_service_command_l
 
 		if (a == JD_REG_RW_STREAMING_SAMPLES) {
-			.mova streaming_samples, pkt_payload[0]
+			.mova streaming_samples#n, pkt_payload[0]
 			goto rx_process_end
 		}
 
 		if (a == JD_REG_RW_STREAMING_INTERVAL) {
 			mov a, pkt_payload[1]
 			ifneq a, 0
-				goto streaming_int_ovf
+				goto streaming_int_ovf#n
 			mov a, pkt_payload[0]
 			and a, 0xf0
 			ifset ZF
-				goto streaming_int_undf
+				goto streaming_int_undf#n
 			sl a
 			ifset CF
-				goto streaming_int_ovf
+				goto streaming_int_ovf#n
 			mov a, pkt_payload[0]
-			goto streaming_int_set
+			goto streaming_int_set#n
 
-		streaming_int_undf:
+		streaming_int_undf#n:
 			mov a, 16
-			goto streaming_int_set
-		streaming_int_ovf:
+			goto streaming_int_set#n
+		streaming_int_ovf#n:
 			mov a, 127
-		streaming_int_set:
-			mov streaming_interval, a
-			.t16_set_a t16_1ms, t_streaming
+		streaming_int_set#n:
+			mov streaming_interval#n, a
+			.t16_set_a t16_1ms, t_streaming#n
 			goto rx_process_end
 		}
 
@@ -1146,8 +1180,8 @@ ENDM
 	if (a == JD_HIGH_REG_RW_GET) {
 		mov a, pkt_service_command_l
 
-		.reg_cmp JD_REG_RW_STREAMING_SAMPLES, txp_streaming_samples
-		.reg_cmp JD_REG_RW_STREAMING_INTERVAL, txp_streaming_interval
+		.reg_cmp JD_REG_RW_STREAMING_SAMPLES, txp_streaming_samples#n
+		.reg_cmp JD_REG_RW_STREAMING_INTERVAL, txp_streaming_interval#n
 
 		goto not_implemented
 	}
@@ -1156,7 +1190,7 @@ ENDM
 	if (a == JD_HIGH_REG_RO_GET) {
 		mov a, pkt_service_command_l
 
-		.reg_cmp JD_REG_RO_READING, txp_reading
+		.reg_cmp JD_REG_RO_READING, txp_reading#n
 		
 		goto not_implemented
 	}
@@ -1164,49 +1198,52 @@ ENDM
 	goto not_implemented
 ENDM
 
-.sensor_process EXPAND
-	mov a, streaming_samples
+.sensor_process EXPAND n
+	mov a, streaming_samples#n
 	ifset ZF
-	  goto skip_stream
-	.t16_chk t16_1ms, t_streaming, <goto do_stream>
-	goto skip_stream
-do_stream:
+	  goto skip_stream#n
+	.t16_chk t16_1ms, t_streaming#n, <goto do_stream#n>
+	goto skip_stream#n
+do_stream#n:
 	.disint
-		mov a, streaming_samples
+		mov a, streaming_samples#n
 		ifclear ZF
-			dec streaming_samples
+			dec streaming_samples#n
 	engint
-	.t16_set t16_1ms, t_streaming, streaming_interval
-	set1 txp_reading
+	.t16_set t16_1ms, t_streaming#n, streaming_interval#n
+	set1 txp_reading#n
 	goto loop
-skip_stream:
+skip_stream#n:
 ENDM
 
-.sensor_prep_tx EXPAND
-	if (txp_streaming_samples) {
-		set0 txp_streaming_samples
+.sensor_prep_tx EXPAND n
+	if (txp_streaming_samples#n) {
+		set0 txp_streaming_samples#n
+		.sensor_set_service#n
 		.set_rw_reg JD_REG_RW_STREAMING_SAMPLES
-		.mova pkt_payload[0], streaming_samples
+		.mova pkt_payload[0], streaming_samples#n
 		.mova pkt_size, 1
 		ret
 	}
 
-	if (txp_streaming_interval) {
-		set0 txp_streaming_interval
+	if (txp_streaming_interval#n) {
+		set0 txp_streaming_interval#n
+		.sensor_set_service#n
 		.set_rw_reg JD_REG_RW_STREAMING_INTERVAL
-		.mova pkt_payload[0], streaming_interval
+		.mova pkt_payload[0], streaming_interval#n
 		.mova pkt_size, 4
 		ret
 	}
 
-	if (txp_reading) {
-		set0 txp_reading
+	if (txp_reading#n) {
+		set0 txp_reading#n
+		.sensor_set_service#n
 		_cnt => 0
-	.repeat SENSOR_SIZE
-		.mova pkt_payload[_cnt], sensor_state[_cnt]
+	.repeat SENSOR_SIZE#n
+		.mova pkt_payload[_cnt], sensor_state#n[_cnt]
 		_cnt => _cnt + 1
 	.endm
-		.mova pkt_size, SENSOR_SIZE
+		.mova pkt_size, SENSOR_SIZE#n
 		.set_ro_reg JD_REG_RO_READING
 		ret
 	}

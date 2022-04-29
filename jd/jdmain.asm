@@ -158,7 +158,15 @@ prep_tx:
 		mov a, (SERVICE_CLASS >> (x * 8)) & 0xff
 		mov pkt_payload[x+4], a
 		.endm
+#if CFG_DUAL_SERVICE
+		.forc x, <0123>
+		mov a, (SERVICE_CLASS2 >> (x * 8)) & 0xff
+		mov pkt_payload[x+8], a
+		.endm
+		.mova pkt_size, 12
+#else
 		.mova pkt_size, 8
+#endif
 		clear pkt_service_number
 		clear pkt_service_command_l
 		clear pkt_service_command_h
@@ -181,6 +189,17 @@ check_service_class:
 	mov a, pkt_device_id[3]
 	ifset ZF
 		goto check_ctrl
+#if CFG_DUAL_SERVICE
+	ifneq a, (SERVICE_CLASS2 >> (3 * 8)) & 0xff
+		goto check_serv1
+	.forc x, <210>
+	mov a, pkt_device_id[x]
+	ifneq a, (SERVICE_CLASS2 >> (x * 8)) & 0xff
+		goto check_serv1
+	.endm
+check_serv1:
+	mov a, pkt_device_id[3]
+#endif
 	ifneq a, (SERVICE_CLASS >> (3 * 8)) & 0xff
 		goto not_interested
 	.forc x, <210>
