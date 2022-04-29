@@ -32,7 +32,7 @@ PB7 -                         | PB1 - mag
 // #define PIN_LOG 1
 
 // Cost given in comment: words of flash/bytes of RAM
-#define CFG_FW_ID 0x3a7e069d // 24/0
+#define CFG_FW_ID 0x348ca1ff // 24/0
 
 .include ../jd/jdheader.asm
 
