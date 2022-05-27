@@ -12,7 +12,7 @@
 	.Code_Option	PB4_PB7_Drive	Strong
 //}}PADAUK_CODE_OPTION
 
-//#define RELEASE 1
+#define RELEASE 1
 
 /*
 Assignment (S8 package):

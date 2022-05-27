@@ -16,23 +16,23 @@ function show(b) {
     console.log(b.toString("hex"), x.toString(16))
     return x
 }
-function disp(a, b) {
+function disp(a) {
     const buf0 = Buffer.from(a.replace(/ /g, ""), "hex")
-    const buf1 = Buffer.from(b.replace(/ /g, ""), "hex")
-    const buf2 = Buffer.from(buf0)
-//    for (let i = 0; i < buf1.length; ++i)
-//        buf2[i] ^= buf1[i]
+    const buf1 = Buffer.from(a.replace(/ /g, ""), "hex")
 
     const x = show(buf0)
-    const y = show(buf1)
-//    const z = show(buf2)
-    console.log((x ^ y).toString(16))
+
+    for (let i = 0; buf1[0] < 40+4; ++i) {
+        buf1[0] += 1
+        const y = jdCrc16(buf1)
+        const diff = x ^ y
+        console.log(`ret 0x${(diff & 0xff).toString(16)}  // ${buf1[0] - 4}`)
+        console.log(`ret 0x${(diff >> 8).toString(16)}`)
+    }
 }
 
 
-disp(
-    "04 00 01 23 45 67 80 ab cd ef",
-       "04 00 01 23 45 67 89 AB CD EF   "
-    // "0C 00 01 23 45 67 89 AB CD EF 08 00 00 00 01 01 00 00 63 A2 73 14 "
-)
+//disp( "04 00 4242424242007969")
+
+show("08 00 37df482e11223344 04000300 8011 44AB")
 

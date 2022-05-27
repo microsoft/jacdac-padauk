@@ -482,8 +482,9 @@ ENDM
 	// STACK_SIZE defaults to 3
 	// application is not using stack when IRQ enabled
 	// rx ISR can do up to 3
-	// LED service can do 1 call + 3 in the RX ISR
-	WORD	main_st[STACK_SIZE]
+	WORD	main_st[STACK_SIZE+2]
+
+	BYTE    my_crc_l, my_crc_h
 
 #if CFG_TXP2
 	BYTE    tx_pending2
@@ -575,7 +576,7 @@ reset_tm2:
 
 IDSIZE equ 8
 
-.fill_id EXPAND
+fill_id:
 	a = pkt_addr+4+IDSIZE-1
 	mov memidx$0, a
 	.mova isr0, IDSIZE
@@ -585,8 +586,8 @@ IDSIZE equ 8
 	idxm memidx, a
 	dec memidx$0
 	dzsn isr0
-	goto @B
-ENDM
+		goto @B
+	ret
 
 .check_id EXPAND fail_lbl
 	a = pkt_addr+4+IDSIZE-1
@@ -603,31 +604,6 @@ ENDM
 	dzsn isr0
 	goto @B
 ENDM
-
-// requires a=1...8
-get_id:
-	pcadd a
-.IFDEF RELEASE
-	.User_Roll 14 BYTE, "genid.exe", "rolling.txt"
-.ELSE
-	ret 0x01
-	ret 0x23
-	ret 0x45
-	ret 0x67
-	ret 0x89
-	ret 0xab
-	ret 0xcd
-	ret 0xef
-
-	// note that these two CRCs always differ by XOR 0xe77e regardless of device id
-	// this can possibly be used in future to only store one of them
-	ret 0x59 // crc of 0400 0123456789abcdef
-	ret 0xe5
-	ret 0x27 // crc of 0800 0123456789abcdef
-	ret 0x02
-	ret 0x12 // crc of 0c00 0123456789abcdef
-	ret 0xaf
-.ENDIF
 
 rx_start:
 	mov TM2CT, a // a is 0 here
@@ -943,7 +919,7 @@ try_tx:
 	PA.PIN_JACDAC = 0 // set lo
 	PAC.PIN_JACDAC = 1 // set to output
 
-	.fill_id // uses isr0
+	call fill_id // uses isr0
 
 	PA.PIN_JACDAC = 1
 
@@ -955,38 +931,25 @@ try_tx:
 	call prep_tx // ~20-~50 cycles
 
 	mov a, pkt_size
-	add a, 3+4 // add pkt-header size + round up to word
-	and a, 0b1111_1100
-	mov frm_sz, a // frm_sz == 4 || 8 || 12
+	add a, 4 // add pkt-header size
+	mov frm_sz, a
 
 #ifdef PWR_SERVICE
 	ifset frm_flags.JD_FRAME_FLAG_IDENTIFIER_IS_SERVICE_CLASS
 	    goto _skip_crc
 #endif
 
-#if PAYLOAD_SIZE > 8
-	mov a, 12
-	if (frm_sz > a) {
-		mov a, 0xff
-		mov crc_l, a
-		mov crc_h, a
-		.mova memidx$0, pkt_addr+2
-		mov a, 10
-		add a, frm_sz
-		goto _calc_crc
-	}
-	mov a, frm_sz
-#endif
-	// initialize crc_l/h from the burned-in values, depending on packet size
-	sr a
-	add a, 7
-	mov isr0, a
-	call get_id
-	mov crc_l, a
-	mov a, isr0
+	.mova crc_l, my_crc_l
+	.mova crc_h, my_crc_h
+	mov a, pkt_size
+	sl a
+	call crc_offset
+	xor crc_l, a
+	mov a, pkt_size
+	sl a
 	add a, 1
-	call get_id
-	mov crc_h, a
+	call crc_offset
+	xor crc_h, a
 
 	.mova memidx$0, pkt_addr+frame_header_size
 	mov a, frm_sz // len
@@ -1067,6 +1030,19 @@ uint16_t jd_crc16(const void *data, uint32_t size) {
 
 #define crc_len isr0
 #define crc_tmp isr1
+
+.crc_init EXPAND
+	call fill_id
+	.mova frm_sz, 4
+	mov a, 0xff
+	mov crc_l, a
+	mov crc_h, a
+	.mova memidx$0, pkt_addr+2
+	mov a, 10
+	call crc16
+	.mova my_crc_h, crc_h
+	.mova my_crc_l, crc_l
+ENDM
 
 // ~27 cycles per byte
 crc16:

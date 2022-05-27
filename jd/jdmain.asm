@@ -3,6 +3,7 @@ jd_main:
 	.clear_memory
 	.rng_init
 	.t16_init
+	.crc_init
 
 	// random delay 0-1000us
 	call rng_next
@@ -252,3 +253,49 @@ check_dual_broadcast:
 //
 
 	.rng_impl
+
+.include jdcrctable.asm
+
+// requires a=1...8
+get_id:
+#if _SYS(AT_ICE)
+	call get_id_core
+	ret
+
+get_id_core:
+	pcadd a
+	// PD42:
+	ret 0x42
+	ret 0x42
+	ret 0x42
+	ret 0x42
+	ret 0x42
+	ret 0x00
+	ret 0x79
+	ret 0x69
+#else
+#ifdef GENID
+	pcadd a
+	.User_Roll 14 BYTE, "genid.exe", "rolling.txt"
+#else
+	sl a
+	pcadd a
+	nop
+	nop
+	ret ((CFG_FW_ID >> 24) & 0xff)
+	nop
+	ret ((CFG_FW_ID >> 16) & 0xff)
+	nop
+	ret ((CFG_FW_ID >> 8) & 0xff)
+	nop
+	ret ((CFG_FW_ID >> 0) & 0xff)
+	call _SYS(ADR.ROLL)+3
+	ret
+	call _SYS(ADR.ROLL)+2
+	ret
+	call _SYS(ADR.ROLL)+1
+	ret
+	call _SYS(ADR.ROLL)+0
+	ret
+#endif
+#endif	
