@@ -608,7 +608,7 @@ ENDM
 get_id:
 	pcadd a
 .IFDEF RELEASE
-	.User_Roll 14 BYTE, "genid.exe", "rolling.txt"
+	.User_Roll 14 BYTE, "../genid/dist/genid.exe", "rolling.txt"
 .ELSE
 	ret 0x01
 	ret 0x23
@@ -1009,6 +1009,7 @@ tx_not_last:
 	PA.PIN_JACDAC = 0
 	mov a, 8
 	nop
+	nop
 _nextbit:	
 	sr tx_data
 	ifset CF
@@ -1041,8 +1042,9 @@ tx_last:
 	PA.PIN_JACDAC = 0
 	.delay 90
 	PA.PIN_JACDAC = 1
-	PAC.PIN_JACDAC = 0 // set to input
+	.delay 2
 	PAPH.PIN_JACDAC = 1
+	PAC.PIN_JACDAC = 0 // set to input
 	call reset_tm2
 	engint
 	goto loop
