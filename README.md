@@ -25,11 +25,14 @@ We thus recommend chips that can run at 8MHz and 3.3V with low voltage detector 
 Additionally, we require the 16-bit timer, an 8-bit timer, 64 bytes of memory, and 1kW of program memory.
 
 This limits the chips to:
-* PMS150C - $0.03; 64 bytes / 1kW
+* PMS150C - $0.03; 64 bytes / 1kW - too small for many services!
 * PMS171B - $0.06; x8-bit timer, 8-bit ADC; 96 bytes / 1.5kW
 * PMS130 - 2x8-bit timer, 12-bit ADC; 88 bytes / 1.5kW
 * PMS131 - $0.08; 2x8-bit timer, 12-bit ADC; 96 bytes / 1.5kW
-* PFS172 - $0.08; 2x8-bit timer, 12-bit ADC; 128 bytes / 2kW; re-flashable
+* PFS172 - $0.08; 2x8-bit timer, 8-bit ADC; 128 bytes / 2kW; re-flashable
+* PFS122 - $0.06; 2x8-bit timer, 12-bit ADC; 128 bytes / 2kW; re-flashable
+
+We've had most success with PFS122.
 
 ## Basic architecture
 
