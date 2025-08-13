@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> The Jacdac project has moved to https://github.com/jacdac. 
+> Support for the PADAUK is deprecated. Contact us if you have questions. 
+
 # Jacdac PADAUK
 
 This repository contains an implementation of Jacdac protocol and various services for the PADAUK family of microcontrollers,
